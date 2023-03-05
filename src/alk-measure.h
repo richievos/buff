@@ -2,8 +2,8 @@
 
 // Buff Libraries
 #include "doser.h"
-#include "ph.h"
 #include "ph-controller.h"
+#include "ph.h"
 
 namespace buff {
 namespace alkmeasure {
@@ -22,6 +22,13 @@ struct AlkMeasurementConfig {
 struct MeasurementData {
     float tankWaterVolumeML = 0.0;
     float reagentVolumeML = 0.0;
+};
+
+enum MeasurementAction {
+    INITIAILIZE,
+    PREPARE,
+    MEASURE,
+    CLEANUP
 };
 
 void stirForABit(const AlkMeasurementConfig &alkMeasureConf) {}
@@ -78,7 +85,7 @@ ph::PHReading measurePH(const ph::controller::PHReader &phReader) {
         lastPHReading = measuredPHStats.addReading(phReading);
         sleep(sleepDurationBetweenSamples);
     }
-    
+
     return lastPHReading;
 }
 
@@ -99,32 +106,50 @@ void executeMeasurementLoop(doser::BuffDosers &buffDosers, const AlkMeasurementC
     }
 }
 
-void measureAlk(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, const ph::controller::PHReader &phReader) {
-    MeasurementData primeAndCleanupScratchData;
-    MeasurementData measurementData;
-    // TODO: wrap this in a transaction/finally equivalent
+class AlkMeasurer {
+   private:
+    MeasurementAction _measurementAction = MeasurementAction::INITIAILIZE;
+    std::unique_ptr<MeasurementData> _primeAndCleanupScratchData = nullptr;
+    std::unique_ptr<MeasurementData> _measurementData = nullptr;
 
-    // Get everything primed and cleared out
-    primeFillDosers(buffDosers, alkMeasureConf);
-    drainMeasurementVessel(buffDosers, alkMeasureConf);
-    fillMeasurementVessel(buffDosers, alkMeasureConf, primeAndCleanupScratchData);
-    stirForABit(alkMeasureConf);
-    drainMeasurementVessel(buffDosers, alkMeasureConf);
+   public:
+    void measureAlk(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, const ph::controller::PHReader &phReader) {
+        // TODO: wrap this in a transaction/finally equivalent
+        if (_measurementAction == INITIAILIZE) {
+            _primeAndCleanupScratchData = std::make_unique<MeasurementData>();
+            _measurementData = std::make_unique<MeasurementData>();
 
-    // Start the measurement
-    fillMeasurementVessel(buffDosers, alkMeasureConf, measurementData);
-    measurementData.reagentVolumeML = alkMeasureConf.incrementalReagentDoseVolumeML;
-    addInitialReagentDose(buffDosers, alkMeasureConf, measurementData);
-    enableStirrer(alkMeasureConf);
+            // Get everything primed and cleared out
+            primeFillDosers(buffDosers, alkMeasureConf);
+            drainMeasurementVessel(buffDosers, alkMeasureConf);
+            fillMeasurementVessel(buffDosers, alkMeasureConf, *_primeAndCleanupScratchData);
+            stirForABit(alkMeasureConf);
+            drainMeasurementVessel(buffDosers, alkMeasureConf);
 
-    executeMeasurementLoop(buffDosers, alkMeasureConf, measurementData, phReader);
+            _measurementAction = PREPARE;
+        } else if (_measurementAction == PREPARE) {
+            // Start the measurement
+            fillMeasurementVessel(buffDosers, alkMeasureConf, *_measurementData);
+            _measurementData->reagentVolumeML = alkMeasureConf.incrementalReagentDoseVolumeML;
+            addInitialReagentDose(buffDosers, alkMeasureConf, *_measurementData);
+            enableStirrer(alkMeasureConf);
 
-    // Clear out all the reagent and refill with fresh tank water
-    disableStirrer(alkMeasureConf);
-    drainMeasurementVessel(buffDosers, alkMeasureConf);
-    fillMeasurementVessel(buffDosers, alkMeasureConf, primeAndCleanupScratchData);
-    stirForABit(alkMeasureConf);
-}
+            _measurementAction = MEASURE;
+        } else if (_measurementAction == MEASURE) {
+            executeMeasurementLoop(buffDosers, alkMeasureConf, *_measurementData, phReader);
+
+            _measurementAction = CLEANUP;
+        } else if (_measurementAction == CLEANUP) {
+            // Clear out all the reagent and refill with fresh tank water
+            disableStirrer(alkMeasureConf);
+            drainMeasurementVessel(buffDosers, alkMeasureConf);
+            fillMeasurementVessel(buffDosers, alkMeasureConf, *_primeAndCleanupScratchData);
+            stirForABit(alkMeasureConf);
+
+            _measurementAction = INITIAILIZE;
+        }
+    }
+};
 
 }  // namespace alkmeasure
 }  // namespace buff

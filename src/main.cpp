@@ -52,7 +52,7 @@ void setupWifi() {
 
     Serial.print("Connected ip=");
     Serial.print(WiFi.localIP());
-    Serial.println("\n");
+    Serial.println();
 }
 
 /**************************
