@@ -1,40 +1,20 @@
 #pragma once
 
 #include <map>
+#include <memory>
+#include <string>
 
 // Arduino Libraries
 #include <A4988.h>
 
-// My Libraries
-#include "boardconfig.h"
-#include "stdbackport.h"
+// Buff Libraries
+#include "doser-config.h"
+#include "inputs-board-config.h"
+#include "inputs.h"
+#include "std-backport.h"
 
-/*******************************
- * Drivers
- *******************************/
-enum DriverStepType {
-    FULL = 1,
-    QUARTER = 4,
-    EIGHTH = 8,
-    SIXTEENTH = 16
-};
-
-/*******************************
- * Steppers
- *******************************/
-struct StepperConfig {
-    int fullStepsForFullRotation;
-    String name;
-    float mlPer10Rotations;
-};
-
-const StepperConfig generic_1_8degree = {200, "generic_1_8degree", 0.0};
-
-const StepperConfig kphm100STB10 = {200, "kphm100STB10", 2.7};
-
-/*******************************
- * Doser Helpers
- *******************************/
+namespace buff {
+namespace doser {
 class Calibrator {
    private:
     const double _mlPerFullRotation;
@@ -57,49 +37,90 @@ class Calibrator {
     }
 };
 
-struct DoserConfig {
-    float mlPerFullRotation;
-    int motorRPM;
-    int microStepType;
+enum MeasurementDoserType {
+    MAIN = 0,
+    DRAIN = 10,
+    REAGENT = 20
 };
 
-struct Doser {
+static std::map<std::string, MeasurementDoserType> const MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER =
+    {{"main", MeasurementDoserType::MAIN},
+     {"drain", MeasurementDoserType::DRAIN},
+     {"reagent", MeasurementDoserType::REAGENT}};
+
+class Doser {
+   public:
     const std::unique_ptr<A4988> stepper;
     std::unique_ptr<Calibrator> calibrator;
     DoserConfig config;
+
+    void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
+        if (aCalibrator == nullptr) aCalibrator = calibrator.get();
+
+        const int degreesRotation = aCalibrator->degreesForMLOutput(outputML);
+
+        Serial.print("Outputting mlToOutput=");
+        Serial.print(outputML);
+        Serial.print("ml,");
+        Serial.print(" via degreesRotation=");
+        Serial.print(degreesRotation);
+        Serial.print(" with mlPerFullRotation=");
+        Serial.print(aCalibrator->getMlPerFullRotation());
+        Serial.print("\n");
+
+        stepper->rotate(degreesRotation);
+    }
 };
 
-/*******************************
- * INPUTS Board config
- *******************************/
-const StepperConfig stepperConfig = kphm100STB10;
+class BuffDosers {
+   private:
+    std::map<MeasurementDoserType, std::unique_ptr<Doser>> _doserTypeToDoser;
 
-auto mainStepper = std::make_unique<A4988>(stepperConfig.fullStepsForFullRotation, DIR_PIN, STEP_PIN, MS1_PIN, MS2_PIN, MS3_PIN);
+   public:
+    BuffDosers() {}
 
-/*******************************
- * Useful functions
- *******************************/
-std::map<std::string, std::unique_ptr<Doser>> nameToDoser;
+    Doser& selectDoser(const MeasurementDoserType doserType) {
+        auto it = _doserTypeToDoser.find(doserType);
+        if (it != _doserTypeToDoser.end()) {
+            return *it->second;
+        } else {
+            // TODO: should raise if a name given that we don't know
+            return *_doserTypeToDoser[MAIN];
+        }
+    }
 
-DoserConfig mainDoserConfig = {.mlPerFullRotation = 0.28, .motorRPM = 60, .microStepType = SIXTEENTH};
-Doser mainDoser = {
-    .stepper = std::move(mainStepper),
-    .calibrator = std::move(std::make_unique<Calibrator>(mainDoserConfig.mlPerFullRotation)),
-    .config = mainDoserConfig};
+    // TODO: return emplace value
+    void emplace(const MeasurementDoserType doserType, std::unique_ptr<Doser> doser) {
+        _doserTypeToDoser.emplace(doserType, std::move(doser));
+    }
+};
 
-
-Doser &selectDoser(const std::string doserName) {
-    if (nameToDoser.count(doserName)) {
-        return *nameToDoser[doserName];
+MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
+    auto it = MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER.find(doserType);
+    if (it != MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER.end()) {
+        return it->second;
     } else {
         // TODO: should raise if a name given that we don't know
-        return *nameToDoser["main"];
+        return MeasurementDoserType::MAIN;
     }
 }
 
-void setupDosers() {
-    nameToDoser.emplace("main", std::unique_ptr<Doser>(&mainDoser));
-    // stepper.setSpeedProfile(stepper.LINEAR_SPEED, MOTOR_ACCEL, MOTOR_DECEL);
-    mainDoser.stepper->begin(mainDoserConfig.motorRPM, mainDoserConfig.microStepType);
-    mainDoser.stepper->enable();
+void setupDoser(BuffDosers& buffDosers, const buff::doser::MeasurementDoserType doserType, const DoserConfig& doserConfig, std::unique_ptr<A4988> stepper) {
+    Doser doser = {
+        .stepper = std::move(stepper),
+        .calibrator = std::move(std::make_unique<Calibrator>(doserConfig.mlPerFullRotation)),
+        .config = doserConfig};
+
+    buffDosers.emplace(doserType, std::move(std::unique_ptr<Doser>(&doser)));
+    doser.stepper->begin(doserConfig.motorRPM, doserConfig.microStepType);
+    doser.stepper->enable();
 }
+
+std::unique_ptr<buff::doser::BuffDosers> setupDosers() {
+    auto dosers = std::make_unique<buff::doser::BuffDosers>();
+    setupDoser(*dosers, buff::doser::MeasurementDoserType::MAIN, mainDoserConfig, std::move(mainStepper));
+    return std::move(dosers);
+}
+
+}  // namespace doser
+}  // namespace buff

@@ -10,19 +10,27 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-// My Libraries
+#include "ZzzMovingAvg.h"
+
+// Buff Libraries
 #include "doser.h"
 #include "inputs.h"
-#include "monitoringdisplay.h"
+#include "monitoring-display.h"
 #include "mqtt.h"
-#include "ph.h"
-#include "stdbackport.h"
+#include "ph-controller.h"
 
+namespace buff {
 /*******************************
- * MQTT
+ * Shared vars
  *******************************/
+const size_t STANDARD_PH_MAVG_LENGTH = 30;
+ph::controller::PHReader phReader(phReadConfig, phCalibrator);
+ph::controller::PHReadingStats<STANDARD_PH_MAVG_LENGTH> phReadingStats;
+
 MqttBroker mqttBroker(MQTT_BROKER_PORT);
 MqttClient mqttClient(&mqttBroker);
+
+std::unique_ptr<doser::BuffDosers> buffDosers = nullptr;
 
 /*******************************
  * Wifi
@@ -42,54 +50,47 @@ void setupWifi() {
         delay(1000);
     }
 
-    Serial << "Connected ip=" << WiFi.localIP() << "\n";
+    Serial.print("Connected ip=");
+    Serial.print(WiFi.localIP());
+    Serial.println("\n");
 }
 
 /**************************
- * pH Stuff
+ * Setup & Loop
  **************************/
-const uint PH_INTERVAL_MS = 1000;
-static unsigned long nextPHReadTime = 0;
-
-void readPHLoop() {
-    unsigned long currentMillis = millis();
-
-    if (nextPHReadTime > currentMillis) {
-        return;
-    }
-
-    const auto pH = getPH(PH_I2C_ADDRESS);
-    const auto convertedPH = phCalibrator.convert(pH);
-
-    publishPH(mqttClient, currentMillis, pH, convertedPH);
-
-    nextPHReadTime = millis() + PH_INTERVAL_MS;
-}
-
-
-void setupPH() {
-    // PH
-    Wire.begin();
-    Wire.setClock(10000);  // set I2C bus to 10 KHz - this is important!
-}
-
 void setup() {
     Serial.begin(115200);
 
     setupWifi();
-    setupDosers();
-    setupPH();
+    buffDosers = doser::setupDosers();
+    ph::controller::setupPH();
 
-    setupDisplay();
+    monitoring_display::setupDisplay();
 
     /*******************
      * MQTT
      *******************/
-    mqttSetup(mqttBroker, mqttClient);
+    mqtt::mqttSetup(mqttBroker, mqttClient, *buffDosers);
 }
 
 void loop() {
-    readPHLoop();
+    auto phReadingPtr = phReader.readNewPHSignalIfTimeAndUpdate<STANDARD_PH_MAVG_LENGTH>(phReadingStats);
+    if (phReadingPtr != nullptr) {
+        mqtt::publishPH(mqttClient, *phReadingPtr);
+    }
 
-    mqttLoop(mqttBroker, mqttClient);
+    mqtt::mqttLoop(mqttBroker, mqttClient);
+}
+
+}  // namespace buff
+
+/**************************
+ * Setup & Loop
+ **************************/
+void setup() {
+    buff::setup();
+}
+
+void loop() {
+    buff::loop();
 }
