@@ -38,19 +38,19 @@ class Calibrator {
 };
 
 enum MeasurementDoserType {
-    MAIN = 0,
+    FILL = 0,
     DRAIN = 10,
     REAGENT = 20
 };
 
 static std::map<std::string, MeasurementDoserType> const MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER =
-    {{"main", MeasurementDoserType::MAIN},
+    {{"fill", MeasurementDoserType::FILL},
      {"drain", MeasurementDoserType::DRAIN},
      {"reagent", MeasurementDoserType::REAGENT}};
 
 class Doser {
    public:
-    const std::unique_ptr<A4988> stepper;
+    std::unique_ptr<A4988> stepper;
     std::unique_ptr<Calibrator> calibrator;
     DoserConfig config;
 
@@ -85,7 +85,9 @@ class BuffDosers {
             return *it->second;
         } else {
             // TODO: should raise if a name given that we don't know
-            return *_doserTypeToDoser[MAIN];
+            Serial.print("Did not find doser for doserType=");
+            Serial.println(doserType);
+            return *_doserTypeToDoser[FILL];
         }
     }
 
@@ -101,24 +103,32 @@ MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
         return it->second;
     } else {
         // TODO: should raise if a name given that we don't know
-        return MeasurementDoserType::MAIN;
+        return MeasurementDoserType::FILL;
     }
 }
 
 void setupDoser(BuffDosers& buffDosers, const buff::doser::MeasurementDoserType doserType, const DoserConfig& doserConfig, std::unique_ptr<A4988> stepper) {
-    Doser doser = {
-        .stepper = std::move(stepper),
-        .calibrator = std::move(std::make_unique<Calibrator>(doserConfig.mlPerFullRotation)),
-        .config = doserConfig};
+    auto doser = std::make_unique<Doser>();
+    doser->stepper = std::move(stepper);
+    doser->calibrator = std::move(std::make_unique<Calibrator>(doserConfig.mlPerFullRotation));
+    doser->config = doserConfig;
 
-    buffDosers.emplace(doserType, std::move(std::unique_ptr<Doser>(&doser)));
-    doser.stepper->begin(doserConfig.motorRPM, doserConfig.microStepType);
-    doser.stepper->enable();
+    doser->stepper->begin(doserConfig.motorRPM, doserConfig.microStepType);
+    doser->stepper->enable();
+    buffDosers.emplace(doserType, std::move(doser));
 }
 
 std::unique_ptr<buff::doser::BuffDosers> setupDosers() {
+    digitalWrite(STEPPER_RST_PIN, LOW);
+    pinMode(STEPPER_RST_PIN, OUTPUT);
+
     auto dosers = std::make_unique<buff::doser::BuffDosers>();
-    setupDoser(*dosers, buff::doser::MeasurementDoserType::MAIN, mainDoserConfig, std::move(mainStepper));
+    setupDoser(*dosers, buff::doser::MeasurementDoserType::FILL, fillDoserConfig, std::move(fillStepper));
+    setupDoser(*dosers, buff::doser::MeasurementDoserType::REAGENT, reagentDoserConfig, std::move(reagentStepper));
+    setupDoser(*dosers, buff::doser::MeasurementDoserType::DRAIN, drainDoserConfig, std::move(drainStepper));
+
+    digitalWrite(STEPPER_RST_PIN, HIGH);
+
     return std::move(dosers);
 }
 

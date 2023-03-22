@@ -18,8 +18,8 @@ namespace controller {
 template <size_t NUM_SAMPLES>
 class PHReadingStats {
    private:
-    ZzzMovingAvg<NUM_SAMPLES, uint, ulong> rawPHStats;
-    ZzzMovingAvg<NUM_SAMPLES, uint, ulong> calibPHStats;
+    ZzzMovingAvg<NUM_SAMPLES, uint, unsigned long> _rawPHStats;
+    ZzzMovingAvg<NUM_SAMPLES, uint, unsigned long> _calibPHStats;
 
     const float phMetricScaleFactor = 10000;
 
@@ -29,17 +29,25 @@ class PHReadingStats {
     PHReading addReading(PHReading reading) {
         _mostRecentReading = reading;
 
-        rawPHStats.add(round(reading.rawPH * phMetricScaleFactor));
-        calibPHStats.add(round(reading.calibratedPH * phMetricScaleFactor));
+        _rawPHStats.add(round(reading.rawPH * phMetricScaleFactor));
+        _calibPHStats.add(round(reading.calibratedPH * phMetricScaleFactor));
 
-        _mostRecentReading.rawPH_mavg = rawPHStats.get() / phMetricScaleFactor;
-        _mostRecentReading.calibratedPH = calibPHStats.get() / phMetricScaleFactor;
+        _mostRecentReading.rawPH_mavg = _rawPHStats.get() / phMetricScaleFactor;
+        _mostRecentReading.calibratedPH_mavg = _calibPHStats.get() / phMetricScaleFactor;
 
         return _mostRecentReading;
     }
 
     PHReading mostRecentReading() const {
         return _mostRecentReading;
+    }
+
+    size_t readingCount() {
+        return _rawPHStats.size();
+    }
+
+    bool receivedMinReadings() {
+        return readingCount() >= NUM_SAMPLES;
     }
 };
 
@@ -53,8 +61,8 @@ class PHReader {
    public:
     PHReader(const PHReadConfig &phReadConfig, const PHCalibrator &phCalibrator) : _phReadConfig(phReadConfig), _phCalibrator(phCalibrator) {}
 
-    PHReading readNewPHSignal(ulong currentMillis = -1) const {
-        if (currentMillis = -1) {
+    PHReading readNewPHSignal(unsigned long currentMillis = -1) const {
+        if (currentMillis == -1) {
             currentMillis = millis();
         }
 
@@ -66,7 +74,7 @@ class PHReader {
     }
 
     template <size_t NUM_SAMPLES>
-    PHReading readNewPHSignalWithStats(PHReadingStats<NUM_SAMPLES> &phReadingStats, ulong currentMillis = -1) const {
+    PHReading readNewPHSignalWithStats(PHReadingStats<NUM_SAMPLES> &phReadingStats, unsigned long currentMillis = -1) const {
         auto phReading = readNewPHSignal(currentMillis);
         return phReadingStats.addReading(phReading);
     }
@@ -91,7 +99,6 @@ class PHReader {
  * Setup & Loop
  *******************************/
 void setupPH() {
-    setupPH_RoboTankPHBoard();
 }
 }  // namespace controller
 }  // namespace ph

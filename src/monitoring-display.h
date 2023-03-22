@@ -43,9 +43,9 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     display.print(F("mavg(pH)="));
     display.println(rawPH_mvag, 3);
 
-    display.print(F("calibrated="));
+    display.print(F("calib="));
     display.println(convertedPH, 3);
-    display.print(F("mvag(calibrated)="));
+    display.print(F("mvag(calib)="));
     display.println(calibratedPH_mvag, 3);
 
     display.print(F("asOf="));

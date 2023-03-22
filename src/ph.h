@@ -1,17 +1,12 @@
 #pragma once
 
+#include <functional>
+
+// Buff Libraries
+#include "ph-common.h"
+
 namespace buff {
 namespace ph {
-
-struct PHReading {
-    unsigned long asOfMS;
-
-    float rawPH;
-    float rawPH_mavg;
-
-    float calibratedPH;
-    float calibratedPH_mavg;
-};
 
 using PHReadingFunctionPtr = std::function<float()>;
 
