@@ -54,12 +54,12 @@ class PHReadingStats {
 class PHReader {
    private:
     const PHCalibrator _phCalibrator;
-    const PHReadConfig &_phReadConfig;
+    const PHReadConfig _phReadConfig;
 
     unsigned long nextPHReadTime = 0;
 
    public:
-    PHReader(const PHReadConfig &phReadConfig, const PHCalibrator &phCalibrator) : _phReadConfig(phReadConfig), _phCalibrator(phCalibrator) {}
+    PHReader(const PHReadConfig phReadConfig, const PHCalibrator &phCalibrator) : _phReadConfig(phReadConfig), _phCalibrator(phCalibrator) {}
 
     PHReading readNewPHSignal(unsigned long currentMillis = -1) const {
         if (currentMillis == -1) {

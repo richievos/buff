@@ -7,10 +7,11 @@ void tearDown(void) {
 void setUp() {
 }
 
+void testNoop() { }
 
 int main(int argc, char **argv) {
     UNITY_BEGIN();
-    RUN_TEST(testFoo);
+    RUN_TEST(testNoop);
     UNITY_END();
 
     return 0;

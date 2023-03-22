@@ -10,80 +10,75 @@
 #include "ph-controller.h"
 #include "ph.h"
 
-template <typename Iterator>
-class FakePHReader {
-    typedef typename Iterator::value_type value_type;
+using namespace buff;
+
+ph::PHCalibrator::CalibrationPoint NoOpHighPoint = {.actualPH = 7.0, .readPH = 7.0};
+ph::PHCalibrator::CalibrationPoint NoOpLowPoint = {.actualPH = 4.0, .readPH = 4.0};
+ph::PHCalibrator NoOpPHCalibrator(NoOpLowPoint, NoOpHighPoint);
+
+struct callable_iter {
+    callable_iter(const std::vector<float> &vals) {
+        _iter = vals.begin();
+    }
+
+    float operator()() {
+        auto val = *_iter;
+        _iter++;
+        return val;
+    }
 
    private:
-    Iterator _readings;
-
-    buff::ph::PHReadConfig buildPHReadConfig() {
-        const buff::ph::PHReadConfig ph_read_config = {
-            .readIntervalMS = 1000,
-            .phReadFunc = readerFunc};
-
-        return ph_read_config;
-    }
-
-   public:
-    FakePHReader(Iterator readings) : _readings(readings) { }
-
-    value_type readerFunc() {
-        using value_type = typename std::iterator_traits<Iterator>::value_type;
-        value_type s = *_readings;
-        _readings++;
-        return s;
-    }
-    // #define nameForRoboTankSignalReaderFunc(i2cAddress) roboTankSignalReaderFunc##i2cAddress
-
-    // #define defineRoboTankSignalReaderFunc(i2cAddress)        \
-    //     float nameForRoboTankSignalReaderFunc(i2cAddress)() { \
-    //         return readPHSignal_RoboTankPHBoard(i2cAddress);  \
-    //     }
+    std::vector<float>::const_iterator _iter;
 };
 
-void testFoo() {
-    auto x = std::vector<float>({5.0, 5.0, 4.5});
-    FakePHReader<std::vector<float>> phReader(x);
+ph::controller::PHReader buildPHReader(std::vector<float> &vals, ph::PHCalibrator &calibrator = NoOpPHCalibrator) {
+    std::function<float()> readerFunc = callable_iter(vals);
+
+    const ph::PHReadConfig phReadConfig = {
+        .readIntervalMS = 1000,
+        .phReadFunc = readerFunc};
+
+    ph::controller::PHReader phReader(phReadConfig, calibrator);
+
+    return phReader;
 }
 
-// void setup(void) {
-//     // NOTE!!! Wait for >2 secs
-//     // if board doesn't support software reset via Serial.DTR/RTS
-//     // delay(2000);
+void testPHReaderHelper() {
+    auto x = std::vector<float>({5.1, 4.9, 4.5});
+    auto reader = buildPHReader(x);
 
-//     // pinMode(LED_BUILTIN, OUTPUT);
+    auto signal = reader.readNewPHSignal(1000);
+    TEST_ASSERT_EQUAL_FLOAT(5.1, signal.rawPH);
 
-//     UNITY_BEGIN();  // IMPORTANT LINE!
-//     // RUN_TEST(testFoo);
-// }
+    auto signal2 = reader.readNewPHSignal(2000);
+    auto signal3 = reader.readNewPHSignal(3000);
+    TEST_ASSERT_EQUAL(4.5, signal3.rawPH);
+}
+
+void testPHCalibration() {
+    ph::PHCalibrator::CalibrationPoint highPoint = {.actualPH = 7.0, .readPH = 14.0};
+    ph::PHCalibrator::CalibrationPoint lowPoint = {.actualPH = 4.0, .readPH = 4.0};
+    ph::PHCalibrator calib(lowPoint, highPoint);
+
+    auto x = std::vector<float>({14.0});
+    auto reader = buildPHReader(x, calib);
+
+    auto signal = reader.readNewPHSignal(1000);
+    TEST_ASSERT_EQUAL_FLOAT(14.0, signal.rawPH);
+    TEST_ASSERT_EQUAL_FLOAT(7.0, signal.calibratedPH);
+}
 
 void tearDown(void) {
-    // clean stuff up here
 }
 
 void setUp() {
     ArduinoFakeReset();
 }
 
-void loop() {
-    //   if (i < max_blinks)
-    //   {
-    //     RUN_TEST(test_led_state_high);
-    //     delay(500);
-    //     RUN_TEST(test_led_state_low);
-    //     delay(500);
-    //     i++;
-    //   }
-    //   else if (i == max_blinks)
-    //   {
-    //     UNITY_END(); // stop unit testing
-    //   }
-}
-
 int main(int argc, char **argv) {
     UNITY_BEGIN();
-    RUN_TEST(testFoo);
+    RUN_TEST(testPHReaderHelper);
+    RUN_TEST(testPHCalibration);
     UNITY_END();
 
     return 0;
