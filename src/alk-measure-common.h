@@ -7,7 +7,7 @@ namespace buff {
 namespace alk_measure {
 
 struct AlkReading {
-    ulong asOfMS = 0;
+    unsigned long asOfMS = 0;
 
     float tankWaterVolumeML = 0.0;
     float reagentVolumeML = 0.0;

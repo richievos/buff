@@ -7,7 +7,6 @@
 
 // Buff Libraries
 #include "inputs-board-config.h"
-#include "std-backport.h"
 
 namespace buff {
 /*******************************
@@ -41,4 +40,16 @@ struct DoserConfig {
     int motorRPM;
     int microStepType;
 };
+
+
+enum MeasurementDoserType {
+    FILL = 0,
+    DRAIN = 10,
+    REAGENT = 20
+};
+
+static std::map<std::string, MeasurementDoserType> const MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER =
+    {{"fill", MeasurementDoserType::FILL},
+     {"drain", MeasurementDoserType::DRAIN},
+     {"reagent", MeasurementDoserType::REAGENT}};
 }  // namespace buff

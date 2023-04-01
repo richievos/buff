@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 // Arduino Libraries
 #include <ArduinoJson.h>
 #include <TinyMqtt.h>
@@ -11,38 +13,44 @@
 
 namespace buff {
 namespace mqtt {
-/*******************************
- * Handlers
- *******************************/
-void publishMessage(MqttClient& mqttClient, const Topic& topic, const DynamicJsonDocument& doc) {
-    String serializedDoc;
-    serializeJson(doc, serializedDoc);
 
-    mqttClient.publish(topic, serializedDoc);
-}
+class MQTTPublisher : public Publisher {
+   public:
+    MQTTPublisher(std::shared_ptr<MqttClient> mqttClient) : _mqttClient(mqttClient) {}
 
-void publishPH(MqttClient& mqttClient, const ph::PHReading& phReading) {
-    DynamicJsonDocument updateDoc(1024);
+    void publishMessage(const Topic& topic, const DynamicJsonDocument& doc) {
+        String serializedDoc;
+        serializeJson(doc, serializedDoc);
 
-    updateDoc["asOf"] = phReading.asOfMS;
-    updateDoc["rawPH"] = phReading.rawPH;
-    updateDoc["rawPH_mavg"] = phReading.rawPH_mavg;
-    updateDoc["calibratedPH"] = phReading.calibratedPH;
-    updateDoc["calibratedPH_mavg"] = phReading.calibratedPH_mavg;
+        _mqttClient->publish(topic, serializedDoc);
+    }
 
-    publishMessage(mqttClient, Topic(phRead), updateDoc);
-}
+    void publishPH(const ph::PHReading& phReading) {
+        DynamicJsonDocument updateDoc(1024);
 
-void publishAlkReading(MqttClient& mqttClient, const alk_measure::AlkReading& alkReading) {
-    DynamicJsonDocument updateDoc(1024);
+        updateDoc["asOf"] = phReading.asOfMS;
+        updateDoc["rawPH"] = phReading.rawPH;
+        updateDoc["rawPH_mavg"] = phReading.rawPH_mavg;
+        updateDoc["calibratedPH"] = phReading.calibratedPH;
+        updateDoc["calibratedPH_mavg"] = phReading.calibratedPH_mavg;
 
-    updateDoc["asOf"] = alkReading.asOfMS;
-    updateDoc["calibratedPH_mavg"] = alkReading.phReading.calibratedPH_mavg;
-    updateDoc["reagentVolumeML"] = alkReading.reagentVolumeML;
-    updateDoc["tankWaterVolumeML"] = alkReading.tankWaterVolumeML;
+        publishMessage(Topic(phRead), updateDoc);
+    }
 
-    publishMessage(mqttClient, Topic(phRead), updateDoc);
-}
+    void publishAlkReading(const alk_measure::AlkReading& alkReading) {
+        DynamicJsonDocument updateDoc(1024);
+
+        updateDoc["asOf"] = alkReading.asOfMS;
+        updateDoc["calibratedPH_mavg"] = alkReading.phReading.calibratedPH_mavg;
+        updateDoc["reagentVolumeML"] = alkReading.reagentVolumeML;
+        updateDoc["tankWaterVolumeML"] = alkReading.tankWaterVolumeML;
+
+        publishMessage(Topic(phRead), updateDoc);
+    }
+
+   private:
+    std::shared_ptr<MqttClient> _mqttClient;
+};
 
 }  // namespace mqtt
 }  // namespace buff

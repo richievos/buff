@@ -1,3 +1,5 @@
+#pragma once
+
 #include <map>
 #include <memory>
 // Arduino Libraries
@@ -7,12 +9,13 @@
 // Buff Libraries
 #include "alk-measure.h"
 #include "doser.h"
+#include "mqtt.h"
 // #include "inputs.h"
 #include "monitoring-display.h"
 #include "mqtt-common.h"
 
 namespace buff {
-namespace mqtt {
+namespace controller {
 /*******************************
  * Handlers
  *******************************/
@@ -21,6 +24,8 @@ using TopicProcessorMap = std::map<std::string,
 TopicProcessorMap topicsToProcessor;
 
 std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
+std::shared_ptr<doser::BuffDosers> buffDosersPtr = nullptr;
+std::shared_ptr<mqtt::Publisher> publisher = nullptr;
 std::unique_ptr<alk_measure::MeasurementStepResult<>> manualStepResult = nullptr;
 
 StaticJsonDocument<200> parseInput(const std::string payload) {
@@ -66,10 +71,14 @@ void triggerAlkMeasurement() {
     }
 }
 
-TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
+std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDosers& buffDosers) {
+    auto topicsToProcessorPtr = std::make_unique<richiev::mqtt::TopicProcessorMap>();
+    auto& topicsToProcessor = *topicsToProcessorPtr;
+
+    // std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers() {
     topicsToProcessor["debug/triggerML"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
-        auto& doser = selectDoser(buffDosers, doc);
+        auto& doser = selectDoser(*buffDosersPtr, doc);
 
         auto outputML = doc.containsKey("ml") ? doc["ml"].as<float>() : DEFAULT_TRIGGER_OUTPUT_ML;
         if (doc.containsKey("mlPerFullRotation")) {
@@ -82,7 +91,7 @@ TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
 
     topicsToProcessor["debug/triggerRotations"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
-        auto& doser = selectDoser(buffDosers, doc);
+        auto& doser = selectDoser(*buffDosersPtr, doc);
 
         int degreesRotation = 0;
         if (doc.containsKey("rotations")) {
@@ -123,7 +132,7 @@ TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
         Serial.print(", nextMeasurementStepAction=");
         Serial.println(manualStepResult->nextMeasurementStepAction);
 
-        auto result = alkMeasurer->measureAlk(*manualStepResult);
+        auto result = alkMeasurer->measureAlk(publisher, *manualStepResult);
         manualStepResult.reset(new alk_measure::MeasurementStepResult<>(result));
 
         Serial.print("Alk measurement step completed, nextAction=");
@@ -150,7 +159,7 @@ TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
 
     topicsToProcessor["config/mlPerFullRotation"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
-        auto& doser = selectDoser(buffDosers, doc);
+        auto& doser = selectDoser(*buffDosersPtr, doc);
 
         const auto newML = doc["ml"].as<float>();
         Serial << "Switching mlPerFullRotation from=" << doser.calibrator->getMlPerFullRotation()
@@ -161,7 +170,7 @@ TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
 
     topicsToProcessor["config/stepSize"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
-        auto& doser = selectDoser(buffDosers, doc);
+        auto& doser = selectDoser(*buffDosersPtr, doc);
 
         auto stepType = doc["stepType"].as<std::string>();
 
@@ -181,57 +190,35 @@ TopicProcessorMap setupHandlers(doser::BuffDosers& buffDosers) {
         doser.stepper->begin(doser.config.motorRPM, doser.config.microStepType);
     };
 
-    topicsToProcessor[phRead] = [](const std::string& payload) {
+    topicsToProcessor[mqtt::phRead] = [](const std::string& payload) {
         auto doc = parseInput(payload);
 
         debugOutputPH(doc);
     };
 
-    topicsToProcessor[alkRead] = [](const std::string& payload) {
+    topicsToProcessor[mqtt::alkRead] = [](const std::string& payload) {
         auto doc = parseInput(payload);
 
         debugOutputAlk(doc);
     };
 
     Serial << "Initialized topic_processor_count=" << topicsToProcessor.size() << endl;
-    return topicsToProcessor;
+    return std::move(topicsToProcessorPtr);
 }
 
-void onPublish(const MqttClient* /* srce */, const Topic& topic, const char* payloadC, size_t payloadLength) {
-    std::string payload = payloadC;
-    Serial << "Received msg on topic=" << topic.c_str() << ", payload=" << payload << "\n";
+void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<alk_measure::AlkMeasurer> measurer, std::shared_ptr<mqtt::Publisher> pub) {
+    std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
-    if (topicsToProcessor.count(topic.c_str())) {
-        topicsToProcessor[topic.c_str()](payload);
-    } else {
-        Serial << "Not handled topic, ignoring" << endl;
-    }
-}
-
-void mqttSetup(MqttBroker& mqttBroker, MqttClient& mqttClient, doser::BuffDosers& buffDosers, std::shared_ptr<alk_measure::AlkMeasurer> measurer) {
-    Serial.print("Starting MQTT broker on port=");
-    Serial.print(MQTT_BROKER_PORT);
-    Serial.print("...");
-
-    mqttBroker.begin();
-
-    Serial.println(" done");
-
-    Serial.print("Starting MQTT client on topic_count=");
-    Serial.println(topicsToProcessor.size());
-
-    mqttClient.setCallback(onPublish);
-    auto setupTopicsToProcessor = setupHandlers(buffDosers);
-    for (const auto& topicAndProcessor : setupTopicsToProcessor) {
-        mqttClient.subscribe(topicAndProcessor.first);
-    }
+    richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
 
     alkMeasurer = measurer;
+    buffDosersPtr = buffDosers;
+    publisher = pub;
 }
 
-void mqttLoop(MqttBroker& mqttBroker, MqttClient& mqttClient) {
-    mqttBroker.loop();
-    mqttClient.loop();
+void loopController() {
+    alk_measure::alkMeasureLoop(publisher, alkMeasurer);
 }
-}  // namespace mqtt
+
+}  // namespace controller
 }  // namespace buff

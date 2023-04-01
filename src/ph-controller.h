@@ -6,7 +6,6 @@
 
 // Buff Libraries
 #include "ph.h"
-#include "std-backport.h"
 
 /*******************************
  * Useful functions
@@ -98,8 +97,8 @@ class PHReader {
 /*******************************
  * Setup & Loop
  *******************************/
-void setupPH() {
-}
+// void setupPH() {
+// }
 }  // namespace controller
 }  // namespace ph
 }  // namespace buff

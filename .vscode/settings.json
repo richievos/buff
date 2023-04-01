@@ -55,6 +55,9 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "unity.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "chrono": "cpp",
+        "ratio": "cpp",
+        "variant": "cpp"
     }
 }

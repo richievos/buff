@@ -1,3 +1,5 @@
+// #include "std-backport.h"
+
 // #include <cmath>
 // #include <cstring>
 #include <functional>
@@ -8,24 +10,24 @@
 // #define TINY_MQTT_DEBUG 2
 // #define TINY_MQTT_ASYNC 1
 #ifdef PIO_UNIT_TESTING
-    // #include "ArduinoFake.h"
-#endif
-#ifndef PIO_UNIT_TESTING
-    #include "Arduino.h"
+// #include "ArduinoFake.h"
 #endif
 
-#ifndef PIO_UNIT_TESTING
+// #ifndef PIO_UNIT_TESTING
 #include <WiFi.h>
 
+#include "Arduino.h"
 #include "ZzzMovingAvg.h"
 
 // Buff Libraries
 #include "alk-measure.h"
+#include "controller.h"
 #include "doser.h"
 #include "inputs.h"
 #include "monitoring-display.h"
 #include "mqtt-publish.h"
 #include "mqtt.h"
+#include "mywifi.h"
 #include "ph-controller.h"
 
 namespace buff {
@@ -36,36 +38,15 @@ alk_measure::AlkMeasurementConfig alkMeasureConf;
 std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
 
 const size_t STANDARD_PH_MAVG_LENGTH = 30;
-ph::controller::PHReader phReader(phReadConfig, phCalibrator);
+auto phReader = std::make_shared<ph::controller::PHReader>(phReadConfig, phCalibrator);
 ph::controller::PHReadingStats<STANDARD_PH_MAVG_LENGTH> phReadingStats;
 
-MqttBroker mqttBroker(MQTT_BROKER_PORT);
-MqttClient mqttClient(&mqttBroker);
+auto mqttBroker = std::make_shared<MqttBroker>(MQTT_BROKER_PORT);
+auto mqttClient = std::make_shared<MqttClient>(mqttBroker.get());
 
-std::unique_ptr<doser::BuffDosers> buffDosers = nullptr;
+auto publisher = std::make_shared<mqtt::MQTTPublisher>(mqttClient);
 
-/*******************************
- * Wifi
- *******************************/
-void setupWifi() {
-    /*******************
-     * WIFI
-     *******************/
-    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
-    WiFi.setHostname(hostname.c_str());
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(wifiSSID.c_str(), wifiPassword.c_str());
-
-    Serial << "Connecting to WiFi ..";
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.print('.');
-        delay(1000);
-    }
-
-    Serial.print("Connected ip=");
-    Serial.print(WiFi.localIP());
-    Serial.println();
-}
+std::shared_ptr<doser::BuffDosers> buffDosers = nullptr;
 
 /**************************
  * Setup & Loop
@@ -73,27 +54,27 @@ void setupWifi() {
 void setup() {
     Serial.begin(115200);
 
-    setupWifi();
-    buffDosers = doser::setupDosers();
+    richiev::connectWifi(hostname, wifiSSID, wifiPassword);
+    buffDosers = std::move(doser::setupDosers(doserConfigs, doserSteppers));
     // ph::controller::setupPH();
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
-    alkMeasurer = std::make_shared<alk_measure::AlkMeasurer>(alk_measure::alkMeasureSetup(mqttClient, *buffDosers, alkMeasureConf, phReader));
+    alkMeasurer = std::move(alk_measure::alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
 
     monitoring_display::setupDisplay();
 
-    mqtt::mqttSetup(mqttBroker, mqttClient, *buffDosers, alkMeasurer);
+    controller::setupController(mqttBroker, mqttClient, buffDosers, alkMeasurer, publisher);
 }
 
 void loop() {
-    auto phReadingPtr = phReader.readNewPHSignalIfTimeAndUpdate<STANDARD_PH_MAVG_LENGTH>(phReadingStats);
+    auto phReadingPtr = phReader->readNewPHSignalIfTimeAndUpdate<STANDARD_PH_MAVG_LENGTH>(phReadingStats);
     if (phReadingPtr != nullptr) {
-        mqtt::publishPH(mqttClient, *phReadingPtr);
+        publisher->publishPH(*phReadingPtr);
     }
 
-    alk_measure::alkMeasureLoop(*alkMeasurer);
+    controller::loopController();
 
-    mqtt::mqttLoop(mqttBroker, mqttClient);
+    richiev::mqtt::loopMQTT(mqttBroker, mqttClient);
 }
 
 }  // namespace buff
@@ -109,4 +90,4 @@ void loop() {
     buff::loop();
 }
 
-#endif
+// #endif

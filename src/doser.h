@@ -11,7 +11,6 @@
 #include "doser-config.h"
 #include "inputs-board-config.h"
 #include "inputs.h"
-#include "std-backport.h"
 
 namespace buff {
 namespace doser {
@@ -37,21 +36,10 @@ class Calibrator {
     }
 };
 
-enum MeasurementDoserType {
-    FILL = 0,
-    DRAIN = 10,
-    REAGENT = 20
-};
-
-static std::map<std::string, MeasurementDoserType> const MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER =
-    {{"fill", MeasurementDoserType::FILL},
-     {"drain", MeasurementDoserType::DRAIN},
-     {"reagent", MeasurementDoserType::REAGENT}};
-
 class Doser {
    public:
-    std::unique_ptr<A4988> stepper;
-    std::unique_ptr<Calibrator> calibrator;
+    std::shared_ptr<A4988> stepper;
+    std::shared_ptr<Calibrator> calibrator;
     DoserConfig config;
 
     void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
@@ -107,7 +95,7 @@ MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
     }
 }
 
-void setupDoser(BuffDosers& buffDosers, const buff::doser::MeasurementDoserType doserType, const DoserConfig& doserConfig, std::unique_ptr<A4988> stepper) {
+void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType doserType, const DoserConfig& doserConfig, std::shared_ptr<A4988> stepper) {
     auto doser = std::make_unique<Doser>();
     doser->stepper = std::move(stepper);
     doser->calibrator = std::move(std::make_unique<Calibrator>(doserConfig.mlPerFullRotation));
@@ -118,14 +106,17 @@ void setupDoser(BuffDosers& buffDosers, const buff::doser::MeasurementDoserType 
     buffDosers.emplace(doserType, std::move(doser));
 }
 
-std::unique_ptr<buff::doser::BuffDosers> setupDosers() {
+std::unique_ptr<buff::doser::BuffDosers> setupDosers(const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<A4988>> steppers) {
     digitalWrite(STEPPER_RST_PIN, LOW);
     pinMode(STEPPER_RST_PIN, OUTPUT);
 
     auto dosers = std::make_unique<buff::doser::BuffDosers>();
-    setupDoser(*dosers, buff::doser::MeasurementDoserType::FILL, fillDoserConfig, std::move(fillStepper));
-    setupDoser(*dosers, buff::doser::MeasurementDoserType::REAGENT, reagentDoserConfig, std::move(reagentStepper));
-    setupDoser(*dosers, buff::doser::MeasurementDoserType::DRAIN, drainDoserConfig, std::move(drainStepper));
+
+    for (auto i : doserConfigs) {
+        auto doserType = i.first;
+        auto doserConfig = i.second;
+        setupDoser(*dosers, doserType, doserConfig, std::move(steppers.at(doserType)));
+    }
 
     digitalWrite(STEPPER_RST_PIN, HIGH);
 
