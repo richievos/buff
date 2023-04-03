@@ -34,7 +34,24 @@ namespace buff {
 /*******************************
  * Shared vars
  *******************************/
-alk_measure::AlkMeasurementConfig alkMeasureConf;
+alk_measure::AlkMeasurementConfig alkMeasureConf = {
+    .measurementTankWaterVolumeML = 100,
+    .initialReagentDoseVolumeML = 0.5
+    // float primeTankWaterFillVolumeML = 10;
+    // float primeReagentVolumeML = 0.5;
+
+    // float measurementTankWaterVolumeML = 200;
+    // float extraPurgeVolumeML = 50;
+
+    // float initialReagentDoseVolumeML = 3.0;
+    // float incrementalReagentDoseVolumeML = 0.1;
+
+    // float stirAmountML = 3.0;
+    // int stirTimes = 10;
+
+    // float reagentStrengthMoles = 0.1;
+};
+
 std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
 
 const size_t STANDARD_PH_MAVG_LENGTH = 30;

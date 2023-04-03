@@ -58,6 +58,7 @@
         "stddef.h": "c",
         "chrono": "cpp",
         "ratio": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "regex": "cpp"
     }
 }

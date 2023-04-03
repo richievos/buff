@@ -42,7 +42,7 @@ class Doser {
     std::shared_ptr<Calibrator> calibrator;
     DoserConfig config;
 
-    void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
+    virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
         if (aCalibrator == nullptr) aCalibrator = calibrator.get();
 
         const int degreesRotation = aCalibrator->degreesForMLOutput(outputML);
@@ -62,26 +62,27 @@ class Doser {
 
 class BuffDosers {
    private:
-    std::map<MeasurementDoserType, std::unique_ptr<Doser>> _doserTypeToDoser;
+    std::map<MeasurementDoserType, std::shared_ptr<Doser>> _doserTypeToDoser;
+    std::map<MeasurementDoserType, std::string> foobar;
 
    public:
     BuffDosers() {}
 
-    Doser& selectDoser(const MeasurementDoserType doserType) {
+    std::shared_ptr<Doser> selectDoser(const MeasurementDoserType doserType) {
         auto it = _doserTypeToDoser.find(doserType);
         if (it != _doserTypeToDoser.end()) {
-            return *it->second;
+            return it->second;
         } else {
             // TODO: should raise if a name given that we don't know
             Serial.print("Did not find doser for doserType=");
             Serial.println(doserType);
-            return *_doserTypeToDoser[FILL];
+            return _doserTypeToDoser[FILL];
         }
     }
 
     // TODO: return emplace value
-    void emplace(const MeasurementDoserType doserType, std::unique_ptr<Doser> doser) {
-        _doserTypeToDoser.emplace(doserType, std::move(doser));
+    void emplace(const MeasurementDoserType doserType, std::shared_ptr<Doser> doser) {
+        _doserTypeToDoser.emplace(doserType, doser);
     }
 };
 

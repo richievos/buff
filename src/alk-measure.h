@@ -12,11 +12,18 @@ namespace alk_measure {
 
 enum MeasurementAction {
     PRIME,
-    CLEAN_FILL,
+    CLEAN_AND_FILL,
     MEASURE,
     CLEANUP,
     MEASURE_DONE
 };
+
+static const std::map<MeasurementAction, std::string> MEASUREMENT_ACTION_TO_NAME =
+    {{PRIME, "PRIME"},
+     {CLEAN_AND_FILL, "CLEAN_AND_FILL"},
+     {MEASURE, "MEASURE"},
+     {CLEANUP, "CLEANUP"},
+     {MEASURE_DONE, "MEASURE_DONE"}};
 
 enum MeasurementStepAction {
     STEP_INITIALIZE,
@@ -25,8 +32,14 @@ enum MeasurementStepAction {
     STEP_DONE
 };
 
+static const std::map<MeasurementStepAction, std::string> MEASUREMENT_STEP_ACTION_TO_NAME =
+    {{STEP_INITIALIZE, "STEP_INITIALIZE"},
+     {MEASURE_PH, "MEASURE_PH"},
+     {DOSE, "DOSE"},
+     {STEP_DONE, "STEP_DONE"}};
+
 void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
-    doser::Doser &drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
+    std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
     // drainDoser.doseML(alkMeasureConf.measurementTankWaterVolumeML + alkMeasureConf.extraPurgeVolumeML);
 
@@ -36,44 +49,44 @@ void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkM
     // won't have the fill doser line submerged.
     const float extraDrainageML = 1.0;
     for (int i = 0; i < alkMeasureConf.stirTimes; i++) {
-        drainDoser.doseML(alkMeasureConf.stirAmountML);
-        drainDoser.doseML(-(alkMeasureConf.stirAmountML + extraDrainageML));
+        drainDoser->doseML(alkMeasureConf.stirAmountML);
+        drainDoser->doseML(-(alkMeasureConf.stirAmountML + extraDrainageML));
     }
 
     // one more extra drain to make sure it all got out
     // assumes the tube starts empty
-    drainDoser.doseML(-alkMeasureConf.stirAmountML);
+    drainDoser->doseML(-alkMeasureConf.stirAmountML);
 }
 
 // Pushes a bit of fluid out of the fill dosers, to make sure when we begin
 // using them for measurement that we don't miss some initial drops. This
 // helps counteract the effects of any back-siphoning.
-void primeDosers(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
-    doser::Doser &waterFillDoser = buffDosers.selectDoser(MeasurementDoserType::FILL);
-    doser::Doser &reagentDoser = buffDosers.selectDoser(MeasurementDoserType::REAGENT);
+void primeDosers(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
+    std::shared_ptr<doser::Doser> waterFillDoser = buffDosers->selectDoser(MeasurementDoserType::FILL);
+    std::shared_ptr<doser::Doser> reagentDoser = buffDosers->selectDoser(MeasurementDoserType::REAGENT);
 
-    waterFillDoser.doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
-    reagentDoser.doseML(alkMeasureConf.primeReagentVolumeML);
-    waterFillDoser.doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
+    waterFillDoser->doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
+    reagentDoser->doseML(alkMeasureConf.primeReagentVolumeML);
+    waterFillDoser->doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
 }
 
 void drainMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
-    doser::Doser &drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
+    std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
-    drainDoser.doseML(alkMeasureConf.measurementTankWaterVolumeML + alkMeasureConf.extraPurgeVolumeML);
+    drainDoser->doseML(alkMeasureConf.measurementTankWaterVolumeML + alkMeasureConf.extraPurgeVolumeML);
 }
 
 void fillMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, AlkReading &alkReading) {
-    doser::Doser &waterFillDoser = buffDosers.selectDoser(MeasurementDoserType::FILL);
+    std::shared_ptr<doser::Doser> waterFillDoser = buffDosers.selectDoser(MeasurementDoserType::FILL);
 
-    waterFillDoser.doseML(alkMeasureConf.measurementTankWaterVolumeML);
+    waterFillDoser->doseML(alkMeasureConf.measurementTankWaterVolumeML);
     alkReading.tankWaterVolumeML += alkMeasureConf.measurementTankWaterVolumeML;
 }
 
 void addReagentDose(doser::BuffDosers &buffDosers, const float amountML, AlkReading &alkReading) {
-    doser::Doser &reagentDoser = buffDosers.selectDoser(MeasurementDoserType::REAGENT);
+    std::shared_ptr<doser::Doser> reagentDoser = buffDosers.selectDoser(MeasurementDoserType::REAGENT);
 
-    reagentDoser.doseML(amountML);
+    reagentDoser->doseML(amountML);
     alkReading.reagentVolumeML += amountML;
 }
 
@@ -82,14 +95,7 @@ bool checkIfHitTarget(const float ph) {
     const float targetPH = 4.5;
     const float practicalTargetPH = targetPH + phMeasurementEpsilon;
 
-    return ph > practicalTargetPH;
-}
-
-void executeMeasurementLoop(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, AlkReading &alkReading) {
-    // Note: per research on the topic (eg https://link.springer.com/chapter/10.1007/978-1-4615-2580-6_14)
-    // the stirrer should be stopped before attempting to measure the pH
-    addReagentDose(buffDosers, alkMeasureConf.incrementalReagentDoseVolumeML, alkReading);
-    stirForABit(buffDosers, alkMeasureConf);
+    return ph < practicalTargetPH;
 }
 
 #define PH_SAMPLE_COUNT 10
@@ -104,23 +110,33 @@ class MeasurementStepResult {
     AlkReading primeAndCleanupScratchData;
 
     std::shared_ptr<ph::controller::PHReadingStats<NUM_SAMPLES>> measuredPHStats;
+
+    AlkMeasurementConfig alkMeasureConf;
 };
 
 class AlkMeasurer {
    private:
     std::shared_ptr<doser::BuffDosers> _buffDosers;
-    const AlkMeasurementConfig _alkMeasureConf;
+    const AlkMeasurementConfig _defaultAlkMeasurementConf;
     const std::shared_ptr<ph::controller::PHReader> _phReader;
 
    public:
-    AlkMeasurer(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) : _buffDosers(buffDosers), _alkMeasureConf(alkMeasureConf), _phReader(phReader) {}
+    AlkMeasurer(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) : _buffDosers(buffDosers), _defaultAlkMeasurementConf(alkMeasureConf), _phReader(phReader) {}
 
     template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
     MeasurementStepResult<NUM_SAMPLES> begin() {
+        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf);
+    }
+
+    template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
+    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf) {
         MeasurementStepResult<NUM_SAMPLES> r;
         r.nextAction = PRIME;
+        r.nextMeasurementStepAction = STEP_INITIALIZE;
+        r.alkMeasureConf = alkMeasureConf;
         return r;
     }
+
 
     template <size_t NUM_SAMPLES>
     MeasurementStepResult<NUM_SAMPLES> measureAlk(std::shared_ptr<mqtt::Publisher> publisher, const MeasurementStepResult<NUM_SAMPLES> &prevResult) {
@@ -129,22 +145,23 @@ class AlkMeasurer {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
 
             // Get everything primed and cleared out
-            primeDosers(*_buffDosers, _alkMeasureConf);
-            drainMeasurementVessel(*_buffDosers, _alkMeasureConf);
-            fillMeasurementVessel(*_buffDosers, _alkMeasureConf, r.primeAndCleanupScratchData);
-            stirForABit(*_buffDosers, _alkMeasureConf);
+            primeDosers(_buffDosers, r.alkMeasureConf);
+            drainMeasurementVessel(*_buffDosers, r.alkMeasureConf);
+            fillMeasurementVessel(*_buffDosers, r.alkMeasureConf, r.primeAndCleanupScratchData);
+            stirForABit(*_buffDosers, r.alkMeasureConf);
 
-            r.nextAction = CLEAN_FILL;
+            r.nextAction = CLEAN_AND_FILL;
+
             return r;
-        } else if (prevResult.nextAction == CLEAN_FILL) {
+        } else if (prevResult.nextAction == CLEAN_AND_FILL) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
 
             // Start the measurement
-            drainMeasurementVessel(*_buffDosers, _alkMeasureConf);
-            fillMeasurementVessel(*_buffDosers, _alkMeasureConf, r.alkReading);
+            drainMeasurementVessel(*_buffDosers, r.alkMeasureConf);
+            fillMeasurementVessel(*_buffDosers, r.alkMeasureConf, r.alkReading);
 
-            addReagentDose(*_buffDosers, _alkMeasureConf.initialReagentDoseVolumeML, r.alkReading);
-            stirForABit(*_buffDosers, _alkMeasureConf);
+            addReagentDose(*_buffDosers, r.alkMeasureConf.initialReagentDoseVolumeML, r.alkReading);
+            stirForABit(*_buffDosers, r.alkMeasureConf);
 
             r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             r.nextAction = MEASURE;
@@ -165,18 +182,23 @@ class AlkMeasurer {
                 auto phReading = r.measuredPHStats->addReading(initialPHReading);
                 r.alkReading.phReading = phReading;
 
-                Serial.print("[alkmeasure] Gathered ph readings readingCount=");
-                Serial.println(r.measuredPHStats->readingCount());
                 if (r.measuredPHStats->receivedMinReadings()) {
-                    r.nextMeasurementStepAction = MeasurementStepAction::DOSE;
+                    if (checkIfHitTarget(r.measuredPHStats->mostRecentReading().calibratedPH_mavg)) {
+                        r.nextAction = CLEANUP;
+                        r.nextMeasurementStepAction = STEP_DONE;
+                        r.alkReading.alkReadingDKH = (r.alkReading.reagentVolumeML / r.alkReading.tankWaterVolumeML * 280.0) * (r.alkMeasureConf.reagentStrengthMoles / 0.1);
+                    } else {
+                        r.nextMeasurementStepAction = MeasurementStepAction::DOSE;
+                    }
+                } else {
+                    r.nextMeasurementStepAction = MEASURE_PH;
                 }
                 r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             } else if (prevResult.nextMeasurementStepAction == MeasurementStepAction::DOSE) {
-                if (checkIfHitTarget(r.measuredPHStats->mostRecentReading().calibratedPH_mavg)) {
-                    r.nextAction = CLEANUP;
-                } else {
-                    executeMeasurementLoop(*_buffDosers, _alkMeasureConf, r.alkReading);
-                }
+                // Note: per research on the topic (eg https://link.springer.com/chapter/10.1007/978-1-4615-2580-6_14)
+                // the stirrer should be stopped before attempting to measure the pH
+                addReagentDose(*_buffDosers, r.alkMeasureConf.incrementalReagentDoseVolumeML, r.alkReading);
+                stirForABit(*_buffDosers, r.alkMeasureConf);
 
                 r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
                 r.nextMeasurementStepAction = STEP_INITIALIZE;
@@ -193,9 +215,9 @@ class AlkMeasurer {
             publisher->publishAlkReading(prevResult.alkReading);
 
             // Clear out all the reagent and refill with fresh tank water
-            drainMeasurementVessel(*_buffDosers, _alkMeasureConf);
-            fillMeasurementVessel(*_buffDosers, _alkMeasureConf, r.primeAndCleanupScratchData);
-            stirForABit(*_buffDosers, _alkMeasureConf);
+            drainMeasurementVessel(*_buffDosers, r.alkMeasureConf);
+            fillMeasurementVessel(*_buffDosers, r.alkMeasureConf, r.primeAndCleanupScratchData);
+            stirForABit(*_buffDosers, r.alkMeasureConf);
 
             r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             return r;
@@ -204,6 +226,10 @@ class AlkMeasurer {
         }
 
         assert(false);
+    }
+
+    AlkMeasurementConfig getDefaultAlkMeasurementConfig() {
+        return _defaultAlkMeasurementConf;
     }
 };
 

@@ -2,7 +2,8 @@
 
 #include <memory>
 
-#include "ZzzMovingAvg.h"
+#include <Arduino.h>
+#include "RVMovingAvg.h"
 
 // Buff Libraries
 #include "ph.h"
@@ -17,8 +18,8 @@ namespace controller {
 template <size_t NUM_SAMPLES>
 class PHReadingStats {
    private:
-    ZzzMovingAvg<NUM_SAMPLES, uint, unsigned long> _rawPHStats;
-    ZzzMovingAvg<NUM_SAMPLES, uint, unsigned long> _calibPHStats;
+    RVMovingAvg<NUM_SAMPLES, unsigned int, unsigned long> _rawPHStats;
+    RVMovingAvg<NUM_SAMPLES, unsigned int, unsigned long> _calibPHStats;
 
     const float phMetricScaleFactor = 10000;
 

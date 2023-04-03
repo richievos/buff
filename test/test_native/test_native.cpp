@@ -1,11 +1,9 @@
-// #include "./test_alk-measure.cpp"
-// #include "./test_ph.cpp"
-
 extern void runPHTests();
 extern void runAlkMeasureTests();
 
-#include "ArduinoFake.h"
 #include <unity.h>
+
+#include "ArduinoFake.h"
 
 void tearDown(void) {
 }
@@ -18,7 +16,5 @@ int main(int argc, char **argv) {
     UNITY_BEGIN();
     runPHTests();
     runAlkMeasureTests();
-    UNITY_END();
-
-    return 0;
+    return UNITY_END();
 }

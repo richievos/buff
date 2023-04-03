@@ -11,7 +11,7 @@ namespace ph {
 using PHReadingFunctionPtr = std::function<float()>;
 
 struct PHReadConfig {
-    uint readIntervalMS;
+    unsigned int readIntervalMS;
     PHReadingFunctionPtr phReadFunc;
 };
 

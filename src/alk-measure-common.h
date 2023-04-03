@@ -12,6 +12,8 @@ struct AlkReading {
     float tankWaterVolumeML = 0.0;
     float reagentVolumeML = 0.0;
 
+    float alkReadingDKH = 0.0;
+
     ph::PHReading phReading;
 };
 
@@ -27,6 +29,8 @@ struct AlkMeasurementConfig {
 
     float stirAmountML = 3.0;
     int stirTimes = 10;
+
+    float reagentStrengthMoles = 0.1;
 };
 
 }  // namespace alk_measure
