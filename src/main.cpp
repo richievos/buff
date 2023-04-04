@@ -9,11 +9,6 @@
 // #include <PubSubClient.h>
 // #define TINY_MQTT_DEBUG 2
 // #define TINY_MQTT_ASYNC 1
-#ifdef PIO_UNIT_TESTING
-// #include "ArduinoFake.h"
-#endif
-
-// #ifndef PIO_UNIT_TESTING
 #include <WiFi.h>
 
 #include "Arduino.h"
@@ -73,7 +68,6 @@ void setup() {
 
     richiev::connectWifi(hostname, wifiSSID, wifiPassword);
     buffDosers = std::move(doser::setupDosers(doserConfigs, doserSteppers));
-    // ph::controller::setupPH();
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
     alkMeasurer = std::move(alk_measure::alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
@@ -106,5 +100,3 @@ void setup() {
 void loop() {
     buff::loop();
 }
-
-// #endif

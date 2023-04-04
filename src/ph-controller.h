@@ -95,11 +95,6 @@ class PHReader {
     }
 };
 
-/*******************************
- * Setup & Loop
- *******************************/
-// void setupPH() {
-// }
 }  // namespace controller
 }  // namespace ph
 }  // namespace buff
