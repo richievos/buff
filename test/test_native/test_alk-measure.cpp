@@ -129,20 +129,26 @@ void testSequenceWithSingleDose() {
 
     // Measurement steps
     // Measurement1: 5.1
+    // STEP_INITIALIZE
     auto measureStepResult = measurer.measureAlk<2>(publisher, cleanAndFillStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
 
+    // MEASURE_PH 1
     measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH);
+    TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
+    // MEASURE_PH 2
     measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::DOSE, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH);
+    TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
+    // DOSE
     measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::STEP_INITIALIZE, measureStepResult.nextMeasurementStepAction);
@@ -154,13 +160,17 @@ void testSequenceWithSingleDose() {
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
 
-    // MEASURE_PH
+    // MEASURE_PH 1
     measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
-    TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
+    TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH);
+    TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
+    // MEASURE_PH 2
     measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH);
+    TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH_mavg);
     TEST_ASSERT_EQUAL(alk_measure::CLEANUP, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::STEP_DONE, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(4.34, measureStepResult.alkReading.alkReadingDKH);

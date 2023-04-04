@@ -87,7 +87,18 @@ void nextActionPrint(const alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHE
     } else {
         Serial.print(0);
     }
+    Serial.print("), calibratedPH_mavg=");
+    Serial.print(stepResult.alkReading.phReading.calibratedPH_mavg);
+    Serial.print(", reagentVolumeML=");
+    Serial.print(stepResult.alkReading.reagentVolumeML);
+    Serial.print(", alkReadingDKH=");
+    Serial.print(stepResult.alkReading.alkReadingDKH);
 }
+
+#define LOAD_FROM_DOC(target, name, type)    \
+    if (doc.containsKey(#name)) {                         \
+        target.name = doc[#name].as<type>(); \
+    }
 
 std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDosers& buffDosers) {
     auto topicsToProcessorPtr = std::make_unique<richiev::mqtt::TopicProcessorMap>();
@@ -134,30 +145,16 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         auto doc = parseInput(payload);
 
         auto beginAlkMeasureConf = alkMeasurer->getDefaultAlkMeasurementConfig();
-        if (doc.containsKey("primeTankWaterFillVolumeML")) {
-            beginAlkMeasureConf.primeTankWaterFillVolumeML = doc["primeTankWaterFillVolumeML"].as<float>();
-        }
-        if (doc.containsKey("primeReagentVolumeML")) {
-            beginAlkMeasureConf.primeReagentVolumeML = doc["primeReagentVolumeML"].as<float>();
-        }
-        if (doc.containsKey("measurementTankWaterVolumeML")) {
-            beginAlkMeasureConf.measurementTankWaterVolumeML = doc["measurementTankWaterVolumeML"].as<float>();
-        }
-        if (doc.containsKey("extraPurgeVolumeML")) {
-            beginAlkMeasureConf.extraPurgeVolumeML = doc["extraPurgeVolumeML"].as<float>();
-        }
-        if (doc.containsKey("initialReagentDoseVolumeML")) {
-            beginAlkMeasureConf.initialReagentDoseVolumeML = doc["initialReagentDoseVolumeML"].as<float>();
-        }
-        if (doc.containsKey("incrementalReagentDoseVolumeML")) {
-            beginAlkMeasureConf.incrementalReagentDoseVolumeML = doc["incrementalReagentDoseVolumeML"].as<float>();
-        }
-        if (doc.containsKey("stirAmountML")) {
-            beginAlkMeasureConf.stirAmountML = doc["stirAmountML"].as<float>();
-        }
-        if (doc.containsKey("stirTimes")) {
-            beginAlkMeasureConf.stirTimes = doc["stirTimes"].as<int>();
-        }
+        LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, primeReagentVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, measurementTankWaterVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, extraPurgeVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, initialReagentDoseVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, incrementalReagentDoseVolumeML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, stirAmountML, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, stirTimes, int);
+        LOAD_FROM_DOC(beginAlkMeasureConf, reagentStrengthMoles, float);
+        LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
         if (doc.containsKey("reagentStrengthMoles")) {
             beginAlkMeasureConf.reagentStrengthMoles = doc["reagentStrengthMoles"].as<float>();
         }
@@ -186,22 +183,6 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         nextActionPrint(*manualStepResult);
         Serial.println();
     };
-
-    // topicsToProcessor["execute/measure_alk/manual/prime"] = [&](const std::string& payload) {
-    //     if (alkMeasurer == nullptr) return;  // TODO: raise
-
-    //     auto doc = parseInput(payload);
-
-    //     Serial.println("Alk Measurement/prime");
-    // };
-
-    // topicsToProcessor["execute/measure_alk/manual/clean_fill"] = [&](const std::string& payload) {
-    //     if (alkMeasurer == nullptr) return;  // TODO: raise
-
-    //     auto doc = parseInput(payload);
-
-    //     Serial.println("Alk Measurement/clean_fill");
-    // };
 
     topicsToProcessor["config/mlPerFullRotation"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
@@ -249,8 +230,10 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
 
         // TODO: do this better
         alk_measure::AlkReading alkReading;
-        alkReading.asOfMS = doc["asOfMS"].as<unsigned long>();
-        alkReading.alkReadingDKH = doc["alkReadingDKH"].as<float>();
+        LOAD_FROM_DOC(alkReading, asOfMS, unsigned long);
+        alkReading.phReading.calibratedPH_mavg = doc["calibratedPH_mavg"].as<float>();
+        LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
+        LOAD_FROM_DOC(alkReading, tankWaterVolumeML, float);
         web_server::addReading(alkReading);
     };
 

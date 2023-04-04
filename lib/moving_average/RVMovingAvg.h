@@ -68,10 +68,10 @@ template <size_t N=4,typename T=int, typename TSUM=long> class RVMovingAvg {
             _sum-=_data[_current];
             _sum+=input;
             _data[_current]=input;
-			_result=_sum/N;
             if (_currentSize < N) {
                 _currentSize++;
             }
+			_result=_sum/_currentSize;
 			return _result;
 		}
 

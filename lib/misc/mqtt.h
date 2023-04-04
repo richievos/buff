@@ -28,7 +28,13 @@ StaticJsonDocument<200> parseInput(const std::string payload) {
 
 void onPublish(const MqttClient* /* srce */, const Topic& topic, const char* payloadC, size_t payloadLength) {
     std::string payload = payloadC;
-    Serial << "Received msg on topic=" << topic.c_str() << ", payload=" << payload << "\n";
+    Serial.print("Received msg on topic=");
+    Serial.print(topic.c_str());
+    Serial.print(", payload=");
+    Serial.print(payloadC);
+    Serial.print(", free_heap=");
+    Serial.print(xPortGetFreeHeapSize());
+    Serial.println();
 
     if (topicsToProcessor->count(topic.c_str())) {
         (*topicsToProcessor)[topic.c_str()](payload);

@@ -13,7 +13,7 @@ namespace buff {
 namespace web_server {
 
 const size_t MEASUREMENTS_TO_COUNT = 10;
-std::list<alk_measure::AlkReading> mostRecentReadings(MEASUREMENTS_TO_COUNT);
+std::list<alk_measure::AlkReading> mostRecentReadings;
 
 WebServer server(80);
 

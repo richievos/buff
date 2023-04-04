@@ -23,9 +23,9 @@ void connectWifi(const std::string hostname, const std::string wifiSSID, const s
     Serial.print(WiFi.localIP());
     Serial.println();
 
-    if (MDNS.begin(hostname.c_str())) {
-        Serial.print("MDNS responder started with hostname=");
-        Serial.println(hostname.c_str());
-    }
+    // if (MDNS.begin(hostname.c_str())) {
+    //     Serial.print("MDNS responder started with hostname=");
+    //     Serial.println(hostname.c_str());
+    // }
 }
 }  // namespace richiev
