@@ -81,7 +81,7 @@ void testBeginStartsEmpty() {
 
     buff::alk_measure::AlkMeasurer measurer(std::move(buffDosers), alkMeasureConf, phReader);
 
-    auto beginStepResult = measurer.begin<1>();
+    auto beginStepResult = measurer.begin<1>(0);
     TEST_ASSERT_EQUAL(alk_measure::PRIME, beginStepResult.nextAction);
 }
 
@@ -113,7 +113,7 @@ void testSequenceWithSingleDose() {
     buff::alk_measure::AlkMeasurer measurer(std::move(buffDosers), alkMeasureConf, phReader);
 
     // Initial setup & fill steps
-    auto beginStepResult = measurer.begin<2>();
+    auto beginStepResult = measurer.begin<2>(0);
     TEST_ASSERT_EQUAL(alk_measure::PRIME, beginStepResult.nextAction);
 
     auto primeStepResult = measurer.measureAlk<2>(publisher, beginStepResult);

@@ -27,9 +27,14 @@ TopicProcessorMap topicsToProcessor;
 std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
 std::shared_ptr<doser::BuffDosers> buffDosersPtr = nullptr;
 std::shared_ptr<mqtt::Publisher> publisher = nullptr;
-#define MANUAL_STEP_PH_CHECKS 5
 
-std::unique_ptr<alk_measure::AlkMeasureLooper<MANUAL_STEP_PH_CHECKS>> measureLooper = nullptr;
+const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
+const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
+
+const unsigned int ALK_STEP_INTERVAL_MS = 500;
+
+std::unique_ptr<alk_measure::AlkMeasureLooper<AUTO_PH_SAMPLE_COUNT>> autoMeasureLooper = nullptr;
+std::unique_ptr<alk_measure::AlkMeasureLooper<MANUAL_PH_SAMPLE_COUNT>> manualMeasureLooper = nullptr;
 
 StaticJsonDocument<200> parseInput(const std::string payload) {
     StaticJsonDocument<200> doc;
@@ -73,7 +78,7 @@ void triggerAlkMeasurement() {
     }
 }
 
-void nextActionPrint(const alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHECKS>& stepResult) {
+void nextActionPrint(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE_COUNT>& stepResult) {
     Serial.print("nextAction=");
     Serial.print(alk_measure::MEASUREMENT_ACTION_TO_NAME.at(stepResult.nextAction).c_str());
     Serial.print("(");
@@ -97,15 +102,32 @@ void nextActionPrint(const alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHE
 }
 
 #define LOAD_FROM_DOC(target, name, type)    \
-    if (doc.containsKey(#name)) {                         \
+    if (doc.containsKey(#name)) {            \
         target.name = doc[#name].as<type>(); \
     }
+
+alk_measure::AlkMeasurementConfig buildAlkMeasureConfig(const StaticJsonDocument<200>& doc) {
+    auto beginAlkMeasureConf = alkMeasurer->getDefaultAlkMeasurementConfig();
+    LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, primeReagentVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, measurementTankWaterVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, extraPurgeVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, initialReagentDoseVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, incrementalReagentDoseVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, stirAmountML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, stirTimes, int);
+    LOAD_FROM_DOC(beginAlkMeasureConf, reagentStrengthMoles, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
+    if (doc.containsKey("reagentStrengthMoles")) {
+        beginAlkMeasureConf.reagentStrengthMoles = doc["reagentStrengthMoles"].as<float>();
+    }
+    return beginAlkMeasureConf;
+}
 
 std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDosers& buffDosers) {
     auto topicsToProcessorPtr = std::make_unique<richiev::mqtt::TopicProcessorMap>();
     auto& topicsToProcessor = *topicsToProcessorPtr;
 
-    // std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers() {
     topicsToProcessor["debug/triggerML"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
         auto doser = selectDoser(*buffDosersPtr, doc);
@@ -134,9 +156,14 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
     };
 
     topicsToProcessor["execute/measure_alk"] = [&](const std::string& payload) {
-        auto doc = parseInput(payload);
-
         Serial.println("Executing an alk measurement");
+        if (alkMeasurer == nullptr) return;        // TODO: raise
+        if (autoMeasureLooper != nullptr) return;  // TODO: should this work this way? Should I reset?
+
+        auto doc = parseInput(payload);
+        auto beginAlkMeasureConf = buildAlkMeasureConfig(doc);
+
+        autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, beginAlkMeasureConf));
     };
 
     topicsToProcessor["execute/measure_alk/manual/begin"] = [&](const std::string& payload) {
@@ -144,39 +171,25 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         if (alkMeasurer == nullptr) return;  // TODO: raise
 
         auto doc = parseInput(payload);
+        auto beginAlkMeasureConf = buildAlkMeasureConfig(doc);
 
-        auto beginAlkMeasureConf = alkMeasurer->getDefaultAlkMeasurementConfig();
-        LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, primeReagentVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, measurementTankWaterVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, extraPurgeVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, initialReagentDoseVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, incrementalReagentDoseVolumeML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, stirAmountML, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, stirTimes, int);
-        LOAD_FROM_DOC(beginAlkMeasureConf, reagentStrengthMoles, float);
-        LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
-        if (doc.containsKey("reagentStrengthMoles")) {
-            beginAlkMeasureConf.reagentStrengthMoles = doc["reagentStrengthMoles"].as<float>();
-        }
+        manualMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_PH_SAMPLE_COUNT>(alkMeasurer, publisher, beginAlkMeasureConf));
 
-        measureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_STEP_PH_CHECKS>(alkMeasurer, publisher, beginAlkMeasureConf));
-    
         Serial.print("Alk measurement begin completed, ");
-        nextActionPrint(measureLooper->getLastStepResult());
+        nextActionPrint(manualMeasureLooper->getLastStepResult());
         Serial.print(", ");
         Serial.print(payload.c_str());
         Serial.println();
     };
 
     topicsToProcessor["execute/measure_alk/manual/next_step"] = [&](const std::string& payload) {
-        if (measureLooper == nullptr) return;  // TODO: raise
+        if (manualMeasureLooper == nullptr) return;  // TODO: raise
 
         Serial.print("Performing next alk measurement step, ");
-        nextActionPrint(measureLooper->getLastStepResult());
+        nextActionPrint(manualMeasureLooper->getLastStepResult());
         Serial.println();
 
-        auto result = measureLooper->nextStep();
+        auto result = manualMeasureLooper->nextStep();
         Serial.print("Alk measurement step completed, ");
         nextActionPrint(result);
         Serial.println();
@@ -239,30 +252,11 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
     return std::move(topicsToProcessorPtr);
 }
 
-std::unique_ptr<alk_measure::MeasurementStepResult<PH_SAMPLE_COUNT>> measureStepResult = nullptr;
-
-uint alkStepIntervalMS = 1000;
-
 std::unique_ptr<alk_measure::AlkMeasurer> alkMeasureSetup(std::shared_ptr<doser::BuffDosers> buffDosers, const alk_measure::AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) {
     return std::make_unique<alk_measure::AlkMeasurer>(buffDosers, alkMeasureConf, phReader);
 }
 
-void alkMeasureLoop(std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer) {
-    if (measureStepResult == nullptr) {
-        return;
-    }
-
-    unsigned long currentMillis = millis();
-
-    if (measureStepResult->primeAndCleanupScratchData.asOfMS + alkStepIntervalMS > currentMillis) {
-        return;
-    }
-
-    // auto next = alkMeasurer.measureAlk(*measureStepResult);
-    // measureStepResult = std::make_unique<MeasurementStepResult<PH_SAMPLE_COUNT>>(next);
-}
-
-void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<ph::controller::PHReader> phReader, const alk_measure::AlkMeasurementConfig &alkMeasureConf, std::shared_ptr<mqtt::Publisher> pub) {
+void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<ph::controller::PHReader> phReader, const alk_measure::AlkMeasurementConfig& alkMeasureConf, std::shared_ptr<mqtt::Publisher> pub) {
     buffDosersPtr = buffDosers;
     publisher = pub;
     alkMeasurer = std::move(alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
@@ -273,9 +267,20 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
     web_server::setupWebServer();
 }
 
+void loopAlkMeasurement(unsigned long loopAsOf) {
+    if (autoMeasureLooper != nullptr &&
+        (autoMeasureLooper->getLastStepResult().asOfMS >= (loopAsOf + ALK_STEP_INTERVAL_MS))) {
+        auto& result = autoMeasureLooper->nextStep();
+        if (result.nextAction == alk_measure::MeasurementAction::MEASURE_DONE) {
+            Serial.println("Completed measurement loop");
+            autoMeasureLooper.reset();
+        }
+    }
+}
+
 void loopController() {
-    // alk_measure::alkMeasureLoop(publisher, alkMeasurer);
     web_server::loopWebServer();
+    loopAlkMeasurement(millis());
 }
 
 }  // namespace controller

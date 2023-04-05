@@ -101,11 +101,10 @@ bool hitPHTarget(const float ph) {
     return ph < practicalTargetPH;
 }
 
-#define PH_SAMPLE_COUNT 10
-
-template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
+template <size_t NUM_SAMPLES>
 class MeasurementStepResult {
    public:
+    unsigned long asOfMS;
     MeasurementAction nextAction;
     MeasurementStepAction nextMeasurementStepAction;
 
@@ -126,17 +125,18 @@ class AlkMeasurer {
    public:
     AlkMeasurer(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) : _buffDosers(buffDosers), _defaultAlkMeasurementConf(alkMeasureConf), _phReader(phReader) {}
 
-    template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
-    MeasurementStepResult<NUM_SAMPLES> begin() {
-        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf);
+    template <size_t NUM_SAMPLES>
+    MeasurementStepResult<NUM_SAMPLES> begin(const unsigned long asOfMS) {
+        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf, asOfMS);
     }
 
-    template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
-    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf) {
+    template <size_t NUM_SAMPLES>
+    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf, const unsigned long asOfMS) {
         MeasurementStepResult<NUM_SAMPLES> r;
         r.nextAction = PRIME;
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
+        r.asOfMS = asOfMS;
         return r;
     }
 
@@ -154,7 +154,7 @@ class AlkMeasurer {
 
             r.nextAction = CLEAN_AND_FILL;
 
-            r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             return r;
         } else if (prevResult.nextAction == CLEAN_AND_FILL) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -168,7 +168,7 @@ class AlkMeasurer {
 
             r.nextAction = MEASURE;
             r.nextMeasurementStepAction = STEP_INITIALIZE;
-            r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             return r;
         } else if (prevResult.nextAction == MEASURE) {
             const float sleepDurationBetweenSamples = 1000;
@@ -206,7 +206,7 @@ class AlkMeasurer {
 
             r.alkReading.alkReadingDKH = (r.alkReading.reagentVolumeML / r.alkReading.tankWaterVolumeML * 280.0) * (r.alkMeasureConf.reagentStrengthMoles / 0.1);
 
-            r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             return r;
         } else if (prevResult.nextAction == CLEANUP) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -219,7 +219,7 @@ class AlkMeasurer {
             stirForABit(*_buffDosers, r.alkMeasureConf);
 
             r.nextAction = MEASURE_DONE;
-            r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             return r;
         } else if (prevResult.nextAction == MEASURE_DONE) {
             return prevResult;
@@ -251,9 +251,9 @@ class AlkMeasureLooper {
     }
 };
 
-template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
+template <size_t NUM_SAMPLES>
 static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, const AlkMeasurementConfig &beginAlkMeasureConf) {
-    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf);
+    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf, millis());
     auto looper = std::make_unique<AlkMeasureLooper<NUM_SAMPLES>>(alkMeasurer, publisher, beginResult);
 
     return std::move(looper);
