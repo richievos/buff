@@ -66,12 +66,6 @@ void debugOutputAlk(const StaticJsonDocument<200> doc, const std::string& payloa
     Serial.println();
 }
 
-std::shared_ptr<doser::Doser> selectDoser(doser::BuffDosers& buffDosers, const StaticJsonDocument<200>& doc) {
-    auto doserString = doc["doser"].as<std::string>();
-    auto measurementDoserType = doser::lookupMeasurementDoserType(doserString);
-    return buffDosers.selectDoser(measurementDoserType);
-}
-
 void debugOutputAction(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE_COUNT>& stepResult) {
     Serial.print("nextAction=");
     Serial.print(alk_measure::MEASUREMENT_ACTION_TO_NAME.at(stepResult.nextAction).c_str());
@@ -93,6 +87,12 @@ void debugOutputAction(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE
     Serial.print(stepResult.alkReading.reagentVolumeML);
     Serial.print(", alkReadingDKH=");
     Serial.print(stepResult.alkReading.alkReadingDKH);
+}
+
+std::shared_ptr<doser::Doser> selectDoser(doser::BuffDosers& buffDosers, const StaticJsonDocument<200>& doc) {
+    auto doserString = doc["doser"].as<std::string>();
+    auto measurementDoserType = doser::lookupMeasurementDoserType(doserString);
+    return buffDosers.selectDoser(measurementDoserType);
 }
 
 #define LOAD_FROM_DOC(target, name, type)    \
