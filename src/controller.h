@@ -72,13 +72,7 @@ std::shared_ptr<doser::Doser> selectDoser(doser::BuffDosers& buffDosers, const S
     return buffDosers.selectDoser(measurementDoserType);
 }
 
-void triggerAlkMeasurement() {
-    if (alkMeasurer != nullptr) {
-        // alkMeasurer->measureAlk(prevStep);
-    }
-}
-
-void nextActionPrint(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE_COUNT>& stepResult) {
+void debugOutputAction(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE_COUNT>& stepResult) {
     Serial.print("nextAction=");
     Serial.print(alk_measure::MEASUREMENT_ACTION_TO_NAME.at(stepResult.nextAction).c_str());
     Serial.print("(");
@@ -176,7 +170,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         manualMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_PH_SAMPLE_COUNT>(alkMeasurer, publisher, beginAlkMeasureConf));
 
         Serial.print("Alk measurement begin completed, ");
-        nextActionPrint(manualMeasureLooper->getLastStepResult());
+        debugOutputAction(manualMeasureLooper->getLastStepResult());
         Serial.print(", ");
         Serial.print(payload.c_str());
         Serial.println();
@@ -186,12 +180,12 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         if (manualMeasureLooper == nullptr) return;  // TODO: raise
 
         Serial.print("Performing next alk measurement step, ");
-        nextActionPrint(manualMeasureLooper->getLastStepResult());
+        debugOutputAction(manualMeasureLooper->getLastStepResult());
         Serial.println();
 
         auto result = manualMeasureLooper->nextStep();
         Serial.print("Alk measurement step completed, ");
-        nextActionPrint(result);
+        debugOutputAction(result);
         Serial.println();
     };
 
