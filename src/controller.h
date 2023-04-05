@@ -28,7 +28,8 @@ std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
 std::shared_ptr<doser::BuffDosers> buffDosersPtr = nullptr;
 std::shared_ptr<mqtt::Publisher> publisher = nullptr;
 #define MANUAL_STEP_PH_CHECKS 5
-std::unique_ptr<alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHECKS>> manualStepResult = nullptr;
+
+std::unique_ptr<alk_measure::AlkMeasureLooper<MANUAL_STEP_PH_CHECKS>> measureLooper = nullptr;
 
 StaticJsonDocument<200> parseInput(const std::string payload) {
     StaticJsonDocument<200> doc;
@@ -159,28 +160,25 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
             beginAlkMeasureConf.reagentStrengthMoles = doc["reagentStrengthMoles"].as<float>();
         }
 
-        auto result = alkMeasurer->begin<MANUAL_STEP_PH_CHECKS>(beginAlkMeasureConf);
-        manualStepResult = std::unique_ptr<alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHECKS>>(new alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHECKS>(result));
-
+        measureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_STEP_PH_CHECKS>(alkMeasurer, publisher, beginAlkMeasureConf));
+    
         Serial.print("Alk measurement begin completed, ");
-        nextActionPrint(*manualStepResult);
+        nextActionPrint(measureLooper->getLastStepResult());
         Serial.print(", ");
         Serial.print(payload.c_str());
         Serial.println();
     };
 
     topicsToProcessor["execute/measure_alk/manual/next_step"] = [&](const std::string& payload) {
-        if (manualStepResult == nullptr) return;  // TODO: raise
+        if (measureLooper == nullptr) return;  // TODO: raise
 
         Serial.print("Performing next alk measurement step, ");
-        nextActionPrint(*manualStepResult);
+        nextActionPrint(measureLooper->getLastStepResult());
         Serial.println();
 
-        auto result = alkMeasurer->measureAlk(publisher, *manualStepResult);
-        manualStepResult.reset(new alk_measure::MeasurementStepResult<MANUAL_STEP_PH_CHECKS>(result));
-
+        auto result = measureLooper->nextStep();
         Serial.print("Alk measurement step completed, ");
-        nextActionPrint(*manualStepResult);
+        nextActionPrint(result);
         Serial.println();
     };
 
@@ -241,10 +239,33 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
     return std::move(topicsToProcessorPtr);
 }
 
-void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<alk_measure::AlkMeasurer> measurer, std::shared_ptr<mqtt::Publisher> pub) {
-    alkMeasurer = measurer;
+std::unique_ptr<alk_measure::MeasurementStepResult<PH_SAMPLE_COUNT>> measureStepResult = nullptr;
+
+uint alkStepIntervalMS = 1000;
+
+std::unique_ptr<alk_measure::AlkMeasurer> alkMeasureSetup(std::shared_ptr<doser::BuffDosers> buffDosers, const alk_measure::AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) {
+    return std::make_unique<alk_measure::AlkMeasurer>(buffDosers, alkMeasureConf, phReader);
+}
+
+void alkMeasureLoop(std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer) {
+    if (measureStepResult == nullptr) {
+        return;
+    }
+
+    unsigned long currentMillis = millis();
+
+    if (measureStepResult->primeAndCleanupScratchData.asOfMS + alkStepIntervalMS > currentMillis) {
+        return;
+    }
+
+    // auto next = alkMeasurer.measureAlk(*measureStepResult);
+    // measureStepResult = std::make_unique<MeasurementStepResult<PH_SAMPLE_COUNT>>(next);
+}
+
+void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<ph::controller::PHReader> phReader, const alk_measure::AlkMeasurementConfig &alkMeasureConf, std::shared_ptr<mqtt::Publisher> pub) {
     buffDosersPtr = buffDosers;
     publisher = pub;
+    alkMeasurer = std::move(alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
 
     std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
@@ -253,7 +274,7 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 }
 
 void loopController() {
-    alk_measure::alkMeasureLoop(publisher, alkMeasurer);
+    // alk_measure::alkMeasureLoop(publisher, alkMeasurer);
     web_server::loopWebServer();
 }
 

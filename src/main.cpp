@@ -47,8 +47,6 @@ alk_measure::AlkMeasurementConfig alkMeasureConf = {
     // float reagentStrengthMoles = 0.1;
 };
 
-std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
-
 const size_t STANDARD_PH_MAVG_LENGTH = 30;
 auto phReader = std::make_shared<ph::controller::PHReader>(phReadConfig, phCalibrator);
 ph::controller::PHReadingStats<STANDARD_PH_MAVG_LENGTH> phReadingStats;
@@ -70,11 +68,10 @@ void setup() {
     buffDosers = std::move(doser::setupDosers(doserConfigs, doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
-    alkMeasurer = std::move(alk_measure::alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
 
     monitoring_display::setupDisplay();
 
-    controller::setupController(mqttBroker, mqttClient, buffDosers, alkMeasurer, publisher);
+    controller::setupController(mqttBroker, mqttClient, buffDosers, phReader, alkMeasureConf, publisher);
 }
 
 void loop() {

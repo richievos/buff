@@ -38,11 +38,15 @@ static const std::map<MeasurementStepAction, std::string> MEASUREMENT_STEP_ACTIO
      {DOSE, "DOSE"},
      {STEP_DONE, "STEP_DONE"}};
 
-// TODO: this doesn't really work by using the drain. Need to switch to a proper stirrer
 void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
     std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
-    // drainDoser.doseML(alkMeasureConf.measurementTankWaterVolumeML + alkMeasureConf.extraPurgeVolumeML);
+    // just blow some liquid out to cause some bubbles
+    drainDoser->doseML(-alkMeasureConf.stirAmountML);
+}
+// TODO: this doesn't really work by using the drain. Need to switch to a proper stirrer
+void stirForABitInAndOut(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
+    std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
     // this is kinda hacky, but since I don't currently have a stirrer
     // just stir it by sucking a bit of water out, then push it back in
@@ -136,7 +140,6 @@ class AlkMeasurer {
         return r;
     }
 
-
     template <size_t NUM_SAMPLES>
     MeasurementStepResult<NUM_SAMPLES> measureAlk(std::shared_ptr<mqtt::Publisher> publisher, const MeasurementStepResult<NUM_SAMPLES> &prevResult) {
         // TODO: wrap this in a transaction/finally equivalent
@@ -225,32 +228,36 @@ class AlkMeasurer {
         assert(false);
     }
 
-    AlkMeasurementConfig getDefaultAlkMeasurementConfig() {
+    const AlkMeasurementConfig getDefaultAlkMeasurementConfig() {
         return _defaultAlkMeasurementConf;
     }
 };
 
-std::unique_ptr<MeasurementStepResult<PH_SAMPLE_COUNT>> measureStepResult = nullptr;
+template <size_t NUM_SAMPLES>
+class AlkMeasureLooper {
+   private:
+    alk_measure::MeasurementStepResult<NUM_SAMPLES> _lastStepResult;
+    std::shared_ptr<mqtt::Publisher> _publisher;
+    std::shared_ptr<AlkMeasurer> _alkMeasurer;
 
-uint alkStepIntervalMS = 1000;
+   public:
+    AlkMeasureLooper(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, MeasurementStepResult<NUM_SAMPLES> initialStep) : _alkMeasurer(alkMeasurer), _publisher(publisher), _lastStepResult(initialStep) {}
 
-std::unique_ptr<AlkMeasurer> alkMeasureSetup(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig &alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> &phReader) {
-    return std::make_unique<AlkMeasurer>(buffDosers, alkMeasureConf, phReader);
-}
+    const MeasurementStepResult<NUM_SAMPLES> &getLastStepResult() { return _lastStepResult; }
 
-void alkMeasureLoop(std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<AlkMeasurer> alkMeasurer) {
-    if (measureStepResult == nullptr) {
-        return;
+    const MeasurementStepResult<NUM_SAMPLES> &nextStep() {
+        _lastStepResult = _alkMeasurer->measureAlk<NUM_SAMPLES>(_publisher, _lastStepResult);
+        return _lastStepResult;
     }
+};
 
-    unsigned long currentMillis = millis();
+template <size_t NUM_SAMPLES = PH_SAMPLE_COUNT>
+static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, const AlkMeasurementConfig &beginAlkMeasureConf) {
+    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf);
+    auto looper = std::make_unique<AlkMeasureLooper<NUM_SAMPLES>>(alkMeasurer, publisher, beginResult);
 
-    if (measureStepResult->primeAndCleanupScratchData.asOfMS + alkStepIntervalMS > currentMillis) {
-        return;
-    }
+    return std::move(looper);
+};
 
-    // auto next = alkMeasurer.measureAlk(*measureStepResult);
-    // measureStepResult = std::make_unique<MeasurementStepResult<PH_SAMPLE_COUNT>>(next);
-}
 }  // namespace alk_measure
 }  // namespace buff
