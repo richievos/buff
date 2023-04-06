@@ -15,6 +15,7 @@
 #include "monitoring-display.h"
 #include "mqtt-common.h"
 #include "reading-store.h"
+#include "time-common.h"
 #include "web-server.h"
 
 namespace buff {
@@ -29,6 +30,7 @@ TopicProcessorMap topicsToProcessor;
 std::shared_ptr<alk_measure::AlkMeasurer> alkMeasurer = nullptr;
 std::shared_ptr<doser::BuffDosers> buffDosersPtr = nullptr;
 std::shared_ptr<mqtt::Publisher> publisher = nullptr;
+std::shared_ptr<buff_time::TimeWrapper> timeClient = nullptr;
 
 const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
 const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
@@ -184,7 +186,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         auto doc = parseInput(payload);
         auto beginAlkMeasureConf = buildAlkMeasureConfig(doc);
 
-        autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, beginAlkMeasureConf));
+        autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, beginAlkMeasureConf));
     };
 
     topicsToProcessor["execute/measure_alk/manual/begin"] = [&](const std::string& payload) {
@@ -194,7 +196,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         auto doc = parseInput(payload);
         auto beginAlkMeasureConf = buildAlkMeasureConfig(doc);
 
-        manualMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_PH_SAMPLE_COUNT>(alkMeasurer, publisher, beginAlkMeasureConf));
+        manualMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<MANUAL_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, beginAlkMeasureConf));
 
         Serial.print("Alk measurement begin completed, ");
         debugOutputAction(manualMeasureLooper->getLastStepResult());
@@ -261,7 +263,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         debugOutputAlk(doc, payload);
 
         reading_store::PersistedAlkReading alkReading;
-        LOAD_FROM_DOC(alkReading, asOfMS, unsigned long);
+        LOAD_FROM_DOC(alkReading, asOfMSAdjusted, unsigned long);
         LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
         readingStore->addReading(alkReading);
         persistReadingStore(readingStore);
@@ -275,15 +277,16 @@ std::unique_ptr<alk_measure::AlkMeasurer> alkMeasureSetup(std::shared_ptr<doser:
     return std::make_unique<alk_measure::AlkMeasurer>(buffDosers, alkMeasureConf, phReader);
 }
 
-void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<ph::controller::PHReader> phReader, const alk_measure::AlkMeasurementConfig& alkMeasureConf, std::shared_ptr<mqtt::Publisher> pub) {
+void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<MqttClient> mqttClient, std::shared_ptr<doser::BuffDosers> buffDosers, std::shared_ptr<ph::controller::PHReader> phReader, const alk_measure::AlkMeasurementConfig& alkMeasureConf, std::shared_ptr<mqtt::Publisher> pub, std::shared_ptr<buff_time::TimeWrapper> t) {
     buffDosersPtr = buffDosers;
     publisher = pub;
+    timeClient = t;
     alkMeasurer = std::move(alkMeasureSetup(buffDosers, alkMeasureConf, phReader));
 
     std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
     readingStore = std::move(reading_store::setupReadingStore<READINGS_TO_KEEP>());
-    webServer = std::make_unique<web_server::BuffWebServer<READINGS_TO_KEEP>>();
+    webServer = std::make_unique<web_server::BuffWebServer<READINGS_TO_KEEP>>(timeClient);
 
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);

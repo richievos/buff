@@ -20,16 +20,15 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
       </li>
     )";
     for (auto measurement : mostRecentReadings) {
-        snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMS, measurement.alkReadingDKH);
+        snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMSAdjusted, measurement.alkReadingDKH);
         measurementString += temp;
     }
     measurementString += "\n</ol>";
     return measurementString;
 }
 
-std::string renderFooter(char *temp, size_t temp_size) {
-    unsigned long time = millis();
-    int sec = time / 1000;
+std::string renderFooter(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
+    int sec = renderTimeMS / 1000;
     int min = sec / 60;
     int hr = min / 60;
 
@@ -40,7 +39,7 @@ std::string renderFooter(char *temp, size_t temp_size) {
     return temp;
 }
 
-void renderRoot(std::string &out, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
+void renderRoot(std::string &out, const unsigned long renderTimeMS, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
     char temp[400];
     memset(temp, 0, 400);
 
@@ -56,7 +55,7 @@ void renderRoot(std::string &out, const std::vector<reading_store::PersistedAlkR
     <header>Buff</header>
     )";
     out += renderMeasurementList(temp, 400, mostRecentReadings);
-    out += renderFooter(temp, 400);
+    out += renderFooter(temp, 400, renderTimeMS);
     out += R"(
   </body>
 </html>

@@ -1,11 +1,14 @@
 #pragma once
 
+#include <Arduino.h>
+
 // Buff Libraries
 #include "alk-measure-common.h"
 #include "doser.h"
 #include "mqtt-common.h"
 #include "ph-controller.h"
 #include "ph.h"
+#include "time-common.h"
 
 namespace buff {
 namespace alk_measure {
@@ -105,6 +108,7 @@ template <size_t NUM_SAMPLES>
 class MeasurementStepResult {
    public:
     unsigned long asOfMS;
+    unsigned long asOfMSAdjusted;
     MeasurementAction nextAction;
     MeasurementStepAction nextMeasurementStepAction;
 
@@ -126,22 +130,23 @@ class AlkMeasurer {
     AlkMeasurer(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) : _buffDosers(buffDosers), _defaultAlkMeasurementConf(alkMeasureConf), _phReader(phReader) {}
 
     template <size_t NUM_SAMPLES>
-    MeasurementStepResult<NUM_SAMPLES> begin(const unsigned long asOfMS) {
-        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf, asOfMS);
+    MeasurementStepResult<NUM_SAMPLES> begin(const unsigned long asOfMS, const unsigned long asOfMSAdjusted) {
+        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf, asOfMS, asOfMSAdjusted);
     }
 
     template <size_t NUM_SAMPLES>
-    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf, const unsigned long asOfMS) {
+    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf, const unsigned long asOfMS, const unsigned long asOfMSAdjusted) {
         MeasurementStepResult<NUM_SAMPLES> r;
         r.nextAction = PRIME;
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
         r.asOfMS = asOfMS;
+        r.asOfMSAdjusted = asOfMSAdjusted;
         return r;
     }
 
     template <size_t NUM_SAMPLES>
-    MeasurementStepResult<NUM_SAMPLES> measureAlk(std::shared_ptr<mqtt::Publisher> publisher, const MeasurementStepResult<NUM_SAMPLES> &prevResult) {
+    MeasurementStepResult<NUM_SAMPLES> measureAlk(std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<buff_time::TimeWrapper> timeClient, const MeasurementStepResult<NUM_SAMPLES> &prevResult) {
         // TODO: wrap this in a transaction/finally equivalent
         if (prevResult.nextAction == PRIME) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -157,6 +162,7 @@ class AlkMeasurer {
             r.nextAction = CLEAN_AND_FILL;
 
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
             return r;
         } else if (prevResult.nextAction == CLEAN_AND_FILL) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -171,6 +177,7 @@ class AlkMeasurer {
             r.nextAction = MEASURE;
             r.nextMeasurementStepAction = STEP_INITIALIZE;
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
             return r;
         } else if (prevResult.nextAction == MEASURE) {
             const float sleepDurationBetweenSamples = 1000;
@@ -209,6 +216,7 @@ class AlkMeasurer {
             r.alkReading.alkReadingDKH = (r.alkReading.reagentVolumeML / r.alkReading.tankWaterVolumeML * 280.0) * (r.alkMeasureConf.reagentStrengthMoles / 0.1);
 
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
             return r;
         } else if (prevResult.nextAction == CLEANUP) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -222,6 +230,7 @@ class AlkMeasurer {
 
             r.nextAction = MEASURE_DONE;
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
             doser::disableDosers();
             return r;
         } else if (prevResult.nextAction == MEASURE_DONE) {
@@ -240,24 +249,25 @@ template <size_t NUM_SAMPLES>
 class AlkMeasureLooper {
    private:
     alk_measure::MeasurementStepResult<NUM_SAMPLES> _lastStepResult;
-    std::shared_ptr<mqtt::Publisher> _publisher;
-    std::shared_ptr<AlkMeasurer> _alkMeasurer;
+    const std::shared_ptr<mqtt::Publisher> _publisher;
+    const std::shared_ptr<AlkMeasurer> _alkMeasurer;
+    const std::shared_ptr<buff_time::TimeWrapper> _timeClient;
 
    public:
-    AlkMeasureLooper(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, MeasurementStepResult<NUM_SAMPLES> initialStep) : _alkMeasurer(alkMeasurer), _publisher(publisher), _lastStepResult(initialStep) {}
+    AlkMeasureLooper(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<buff_time::TimeWrapper> timeClient, MeasurementStepResult<NUM_SAMPLES> initialStep) : _alkMeasurer(alkMeasurer), _publisher(publisher), _timeClient(timeClient), _lastStepResult(initialStep) {}
 
     const MeasurementStepResult<NUM_SAMPLES> &getLastStepResult() { return _lastStepResult; }
 
     const MeasurementStepResult<NUM_SAMPLES> &nextStep() {
-        _lastStepResult = _alkMeasurer->measureAlk<NUM_SAMPLES>(_publisher, _lastStepResult);
+        _lastStepResult = _alkMeasurer->measureAlk<NUM_SAMPLES>(_publisher, _timeClient, _lastStepResult);
         return _lastStepResult;
     }
 };
 
 template <size_t NUM_SAMPLES>
-static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, const AlkMeasurementConfig &beginAlkMeasureConf) {
-    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf, millis());
-    auto looper = std::make_unique<AlkMeasureLooper<NUM_SAMPLES>>(alkMeasurer, publisher, beginResult);
+static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<buff_time::TimeWrapper> timeClient, const AlkMeasurementConfig &beginAlkMeasureConf) {
+    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf, millis(), timeClient->getAdjustedTimeMS());
+    auto looper = std::make_unique<AlkMeasureLooper<NUM_SAMPLES>>(alkMeasurer, publisher, timeClient, beginResult);
 
     return std::move(looper);
 };

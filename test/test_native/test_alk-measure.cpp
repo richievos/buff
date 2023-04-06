@@ -8,6 +8,7 @@
 #include "doser.h"
 #include "mqtt-common.h"
 #include "ph-mock.h"
+#include "time-common.h"
 
 namespace test_alk_measure {
 using namespace buff;
@@ -83,7 +84,7 @@ void testBeginStartsEmpty() {
 
     buff::alk_measure::AlkMeasurer measurer(std::move(buffDosers), alkMeasureConf, phReader);
 
-    auto beginStepResult = measurer.begin<1>(0);
+    auto beginStepResult = measurer.begin<1>(0, 0);
     TEST_ASSERT_EQUAL(alk_measure::PRIME, beginStepResult.nextAction);
 }
 
@@ -111,19 +112,20 @@ void testSequenceWithSingleDose() {
 
     auto publisherMock = buildPublisherMock();
     std::shared_ptr<mqtt::Publisher> publisher(mockptrize(publisherMock));
+    auto timeClient = std::make_shared<buff_time::TimeWrapper>();
 
     buff::alk_measure::AlkMeasurer measurer(std::move(buffDosers), alkMeasureConf, phReader);
 
     // Initial setup & fill steps
-    auto beginStepResult = measurer.begin<2>(0);
+    auto beginStepResult = measurer.begin<2>(0, 0);
     TEST_ASSERT_EQUAL(alk_measure::PRIME, beginStepResult.nextAction);
 
-    auto primeStepResult = measurer.measureAlk<2>(publisher, beginStepResult);
+    auto primeStepResult = measurer.measureAlk<2>(publisher, timeClient, beginStepResult);
     TEST_ASSERT_EQUAL(alk_measure::CLEAN_AND_FILL, primeStepResult.nextAction);
     TEST_ASSERT_EQUAL_FLOAT(alkMeasureConf.measurementTankWaterVolumeML, primeStepResult.primeAndCleanupScratchData.tankWaterVolumeML);
     TEST_ASSERT_EQUAL(0, primeStepResult.primeAndCleanupScratchData.reagentVolumeML);
 
-    auto cleanAndFillStepResult = measurer.measureAlk<2>(publisher, primeStepResult);
+    auto cleanAndFillStepResult = measurer.measureAlk<2>(publisher, timeClient, primeStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, cleanAndFillStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::STEP_INITIALIZE, cleanAndFillStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(200.0, cleanAndFillStepResult.alkReading.tankWaterVolumeML);
@@ -132,45 +134,45 @@ void testSequenceWithSingleDose() {
     // Measurement steps
     // Measurement1: 5.1
     // STEP_INITIALIZE
-    auto measureStepResult = measurer.measureAlk<2>(publisher, cleanAndFillStepResult);
+    auto measureStepResult = measurer.measureAlk<2>(publisher, timeClient, cleanAndFillStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
 
     // MEASURE_PH 1
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
     // MEASURE_PH 2
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::DOSE, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH);
     TEST_ASSERT_EQUAL_FLOAT(5.1, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
     // DOSE
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::STEP_INITIALIZE, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(3.1, measureStepResult.alkReading.reagentVolumeML);
 
     // Measurement2: 4.5
     // STEP_INITIALIZE
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
 
     // MEASURE_PH 1
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE, measureStepResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_PH, measureStepResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH);
     TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH_mavg);
 
     // MEASURE_PH 2
-    measureStepResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    measureStepResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH);
     TEST_ASSERT_EQUAL_FLOAT(4.5, measureStepResult.alkReading.phReading.calibratedPH_mavg);
     TEST_ASSERT_EQUAL(alk_measure::CLEANUP, measureStepResult.nextAction);
@@ -178,7 +180,7 @@ void testSequenceWithSingleDose() {
     TEST_ASSERT_EQUAL_FLOAT(4.34, measureStepResult.alkReading.alkReadingDKH);
 
     // CLEANUP
-    auto cleanupResult = measurer.measureAlk<2>(publisher, measureStepResult);
+    auto cleanupResult = measurer.measureAlk<2>(publisher, timeClient, measureStepResult);
     TEST_ASSERT_EQUAL(alk_measure::MEASURE_DONE, cleanupResult.nextAction);
     TEST_ASSERT_EQUAL(alk_measure::STEP_DONE, cleanupResult.nextMeasurementStepAction);
     TEST_ASSERT_EQUAL_FLOAT(200.0, cleanupResult.alkReading.tankWaterVolumeML);

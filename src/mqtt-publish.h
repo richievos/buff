@@ -41,6 +41,7 @@ class MQTTPublisher : public Publisher {
         DynamicJsonDocument updateDoc(1024);
 
         updateDoc["asOf"] = alkReading.asOfMS;
+        updateDoc["asOfMSAdjusted"] = alkReading.asOfMSAdjusted;
         updateDoc["reagentVolumeML"] = alkReading.reagentVolumeML;
         updateDoc["tankWaterVolumeML"] = alkReading.tankWaterVolumeML;
         updateDoc["alkReadingDKH"] = alkReading.alkReadingDKH;

@@ -7,6 +7,7 @@
 
 #include "alk-measure-common.h"
 #include "reading-store.h"
+#include "time-common.h"
 #include "web-server-renderers.h"
 
 namespace buff {
@@ -16,14 +17,15 @@ template <size_t N, int PORT = 80>
 class BuffWebServer {
    private:
     std::shared_ptr<reading_store::ReadingStore<N>> _readingStore = nullptr;
+    std::shared_ptr<buff_time::TimeWrapper> _timeClient = nullptr;
     WebServer _server;
 
    public:
-    BuffWebServer() : _server(PORT) {}
+    BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient) : _server(PORT), _timeClient(timeClient) {}
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _readingStore->getReadings());
+        renderRoot(bodyText, _timeClient->getAdjustedTimeMS(), _readingStore->getReadings());
 
         _server.send(200, "text/html", bodyText.c_str());
     }

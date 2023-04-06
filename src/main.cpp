@@ -12,7 +12,6 @@
 #include <WiFi.h>
 
 #include "Arduino.h"
-#include "ZzzMovingAvg.h"
 
 // Buff Libraries
 #include "alk-measure.h"
@@ -23,6 +22,7 @@
 #include "mqtt-publish.h"
 #include "mqtt.h"
 #include "mywifi.h"
+#include "ntp.h"
 #include "ph-controller.h"
 
 namespace buff {
@@ -58,6 +58,9 @@ auto mqttClient = std::make_shared<MqttClient>(mqttBroker.get());
 
 auto publisher = std::make_shared<mqtt::MQTTPublisher>(mqttClient);
 
+std::shared_ptr<NTPClient> ntpClient;
+std::shared_ptr<buff_time::TimeWrapper> timeClient;
+
 std::shared_ptr<doser::BuffDosers> buffDosers = nullptr;
 
 /**************************
@@ -73,7 +76,11 @@ void setup() {
 
     monitoring_display::setupDisplay();
 
-    controller::setupController(mqttBroker, mqttClient, buffDosers, phReader, alkMeasureConf, publisher);
+    // trigger a NTP refresh
+    ntpClient = std::move(ntp::setupNTP());
+    timeClient = std::make_shared<ntp::NTPTimeWrapper>(ntpClient);
+
+    controller::setupController(mqttBroker, mqttClient, buffDosers, phReader, alkMeasureConf, publisher, timeClient);
 }
 
 void loop() {
@@ -81,6 +88,8 @@ void loop() {
     if (phReadingPtr != nullptr) {
         publisher->publishPH(*phReadingPtr);
     }
+
+    ntp::loopNTP(ntpClient);
 
     controller::loopController();
 

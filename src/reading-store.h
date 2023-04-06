@@ -14,7 +14,7 @@ namespace reading_store {
 const char* PREFERENCE_NS = "buff";
 
 struct PersistedAlkReading {
-    unsigned long asOfMS;
+    unsigned long asOfMSAdjusted;
     float alkReadingDKH;
 };
 
@@ -34,7 +34,7 @@ void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading
     char dkhKey[] = DKH_KEY(i);
     preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
     char asOfKey[] = AS_OF_KEY(i);
-    preferences.putULong(asOfKey, reading.asOfMS);
+    preferences.putULong(asOfKey, reading.asOfMSAdjusted);
 }
 
 PersistedAlkReading readAlkReading(const unsigned char i) {
@@ -43,7 +43,7 @@ PersistedAlkReading readAlkReading(const unsigned char i) {
     char dkhKey[] = DKH_KEY(i);
     reading.alkReadingDKH = numeric::byteToSmallFloat(preferences.getUChar(dkhKey, 0));
     char asOfKey[] = AS_OF_KEY(i);
-    reading.asOfMS = preferences.getULong(asOfKey, 0);
+    reading.asOfMSAdjusted = preferences.getULong(asOfKey, 0);
 
     return reading;
 }
@@ -109,7 +109,7 @@ std::unique_ptr<ReadingStore<N>> setupReadingStore() {
     preferences.begin(PREFERENCE_NS, true);
     for (unsigned char i = 0; i < N; i++) {
         PersistedAlkReading reading = readAlkReading(i);
-        if (reading.asOfMS != 0) {
+        if (reading.asOfMSAdjusted != 0) {
             readingStore->addReading(reading);
         }
     }
