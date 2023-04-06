@@ -139,6 +139,16 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         nvs_flash_init();
     };
 
+    topicsToProcessor["debug/dosers/disable"] = [&](const std::string& payload) {
+        Serial.println("Disabling doser stepper");
+        doser::disableDosers();
+    };
+
+    topicsToProcessor["debug/dosers/enable"] = [&](const std::string& payload) {
+        Serial.println("Enabling doser stepper");
+        doser::enableDosers();
+    };
+
     topicsToProcessor["debug/triggerML"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
         auto doser = selectDoser(*buffDosersPtr, doc);

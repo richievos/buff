@@ -107,9 +107,17 @@ void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType doserType, co
     buffDosers.emplace(doserType, std::move(doser));
 }
 
+void disableDosers() {
+    digitalWrite(STEPPER_EN_PIN, HIGH);
+}
+
+void enableDosers() {
+    digitalWrite(STEPPER_EN_PIN, LOW);
+}
+
 std::unique_ptr<buff::doser::BuffDosers> setupDosers(const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<A4988>> steppers) {
-    digitalWrite(STEPPER_RST_PIN, LOW);
-    pinMode(STEPPER_RST_PIN, OUTPUT);
+    disableDosers();
+    pinMode(STEPPER_EN_PIN, OUTPUT);
 
     auto dosers = std::make_unique<buff::doser::BuffDosers>();
 
@@ -118,8 +126,6 @@ std::unique_ptr<buff::doser::BuffDosers> setupDosers(const std::map<MeasurementD
         auto doserConfig = i.second;
         setupDoser(*dosers, doserType, doserConfig, std::move(steppers.at(doserType)));
     }
-
-    digitalWrite(STEPPER_RST_PIN, HIGH);
 
     return std::move(dosers);
 }

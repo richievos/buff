@@ -67,6 +67,8 @@ void stubs() {
     When(OverloadedMethod(ArduinoFake(Serial), println, size_t(void))).AlwaysReturn();
 
     When(Method(ArduinoFake(), millis)).AlwaysReturn(200000);
+
+    When(Method(ArduinoFake(), digitalWrite)).AlwaysReturn();
 }
 
 void testBeginStartsEmpty() {

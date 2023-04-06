@@ -45,4 +45,4 @@ PHCalibrator phCalibrator(phLowPoint, phHighPoint);
  *******************************/
 const StepperConfig stepperConfig = kphm100STB10;
 
-auto fillStepper = std::make_unique<A4988>(stepperConfig.fullStepsForFullRotation, FILL_WATER_DIR_PIN, FILL_WATER_STEP_PIN, MS1_PIN, MS2_PIN, MS3_PIN);
+auto fillStepper = std::make_unique<A4988>(stepperConfig.fullStepsForFullRotation, FILL_WATER_DIR_PIN, FILL_WATER_STEP_PIN);

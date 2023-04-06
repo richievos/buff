@@ -137,6 +137,7 @@ class AlkMeasurer {
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
         r.asOfMS = asOfMS;
+        doser::enableDosers();
         return r;
     }
 
@@ -220,6 +221,7 @@ class AlkMeasurer {
 
             r.nextAction = MEASURE_DONE;
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
+            doser::disableDosers();
             return r;
         } else if (prevResult.nextAction == MEASURE_DONE) {
             return prevResult;
