@@ -137,7 +137,6 @@ class AlkMeasurer {
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
         r.asOfMS = asOfMS;
-        doser::enableDosers();
         return r;
     }
 
@@ -146,6 +145,8 @@ class AlkMeasurer {
         // TODO: wrap this in a transaction/finally equivalent
         if (prevResult.nextAction == PRIME) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
+
+            doser::enableDosers();
 
             // Get everything primed and cleared out
             primeDosers(_buffDosers, r.alkMeasureConf);

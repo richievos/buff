@@ -37,7 +37,7 @@ const unsigned int READINGS_TO_KEEP = 10;
 std::unique_ptr<web_server::BuffWebServer<READINGS_TO_KEEP>> webServer;
 std::shared_ptr<reading_store::ReadingStore<READINGS_TO_KEEP>> readingStore;
 
-const unsigned int ALK_STEP_INTERVAL_MS = 500;
+const unsigned int ALK_STEP_INTERVAL_MS = 1000;
 
 std::unique_ptr<alk_measure::AlkMeasureLooper<AUTO_PH_SAMPLE_COUNT>> autoMeasureLooper = nullptr;
 std::unique_ptr<alk_measure::AlkMeasureLooper<MANUAL_PH_SAMPLE_COUNT>> manualMeasureLooper = nullptr;
@@ -290,14 +290,15 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 }
 
 void loopAlkMeasurement(unsigned long loopAsOf) {
+    Serial.println();
     if (autoMeasureLooper != nullptr &&
-        (autoMeasureLooper->getLastStepResult().asOfMS >= (loopAsOf + ALK_STEP_INTERVAL_MS))) {
-        auto& result = autoMeasureLooper->nextStep();
-        if (result.nextAction == alk_measure::MeasurementAction::MEASURE_DONE) {
-            Serial.println("Completed measurement loop");
-            autoMeasureLooper.reset();
+        (autoMeasureLooper->getLastStepResult().asOfMS + ALK_STEP_INTERVAL_MS) <= loopAsOf) {
+            auto& result = autoMeasureLooper->nextStep();
+            if (result.nextAction == alk_measure::MeasurementAction::MEASURE_DONE) {
+                Serial.println("Completed measurement loop");
+                autoMeasureLooper.reset();
+            }
         }
-    }
 }
 
 void loopController() {

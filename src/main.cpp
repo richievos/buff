@@ -30,10 +30,12 @@ namespace buff {
  * Shared vars
  *******************************/
 alk_measure::AlkMeasurementConfig alkMeasureConf = {
-    .measurementTankWaterVolumeML = 100,
-    .initialReagentDoseVolumeML = 0.5
-    // float primeTankWaterFillVolumeML = 10;
-    // float primeReagentVolumeML = 0.5;
+    .primeTankWaterFillVolumeML = 1.0,
+    .primeReagentVolumeML = 0.2,
+
+    .measurementTankWaterVolumeML = 200,
+    .initialReagentDoseVolumeML = 2.0,
+    .stirTimes = 1
 
     // float measurementTankWaterVolumeML = 200;
     // float extraPurgeVolumeML = 50;
