@@ -5,6 +5,7 @@
 // Arduino Libraries
 #include <ArduinoJson.h>
 #include <TinyMqtt.h>
+#include <nvs_flash.h>
 
 // Buff Libraries
 #include "alk-measure.h"
@@ -13,6 +14,7 @@
 // #include "inputs.h"
 #include "monitoring-display.h"
 #include "mqtt-common.h"
+#include "reading-store.h"
 #include "web-server.h"
 
 namespace buff {
@@ -30,6 +32,10 @@ std::shared_ptr<mqtt::Publisher> publisher = nullptr;
 
 const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
 const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
+
+const unsigned int READINGS_TO_KEEP = 10;
+std::unique_ptr<web_server::BuffWebServer<READINGS_TO_KEEP>> webServer;
+std::shared_ptr<reading_store::ReadingStore<READINGS_TO_KEEP>> readingStore;
 
 const unsigned int ALK_STEP_INTERVAL_MS = 500;
 
@@ -121,6 +127,17 @@ alk_measure::AlkMeasurementConfig buildAlkMeasureConfig(const StaticJsonDocument
 std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDosers& buffDosers) {
     auto topicsToProcessorPtr = std::make_unique<richiev::mqtt::TopicProcessorMap>();
     auto& topicsToProcessor = *topicsToProcessorPtr;
+
+    topicsToProcessor["debug/restart"] = [&](const std::string& payload) {
+        Serial.println("Restarting");
+        ESP.restart();
+    };
+
+    topicsToProcessor["debug/clear"] = [&](const std::string& payload) {
+        Serial.println("Clearing settings out");
+        nvs_flash_erase();
+        nvs_flash_init();
+    };
 
     topicsToProcessor["debug/triggerML"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
@@ -233,13 +250,11 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
 
         debugOutputAlk(doc, payload);
 
-        // TODO: do this better
-        alk_measure::AlkReading alkReading;
+        reading_store::PersistedAlkReading alkReading;
         LOAD_FROM_DOC(alkReading, asOfMS, unsigned long);
-        alkReading.phReading.calibratedPH_mavg = doc["calibratedPH_mavg"].as<float>();
         LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
-        LOAD_FROM_DOC(alkReading, tankWaterVolumeML, float);
-        web_server::addReading(alkReading);
+        readingStore->addReading(alkReading);
+        persistReadingStore(readingStore);
     };
 
     Serial << "Initialized topic_processor_count=" << topicsToProcessor.size() << endl;
@@ -257,8 +272,11 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 
     std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
+    readingStore = std::move(reading_store::setupReadingStore<READINGS_TO_KEEP>());
+    webServer = std::make_unique<web_server::BuffWebServer<READINGS_TO_KEEP>>();
+
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
-    web_server::setupWebServer();
+    webServer->setupWebServer(readingStore);
 }
 
 void loopAlkMeasurement(unsigned long loopAsOf) {
@@ -273,7 +291,7 @@ void loopAlkMeasurement(unsigned long loopAsOf) {
 }
 
 void loopController() {
-    web_server::loopWebServer();
+    webServer->loopWebServer();
     loopAlkMeasurement(millis());
 }
 

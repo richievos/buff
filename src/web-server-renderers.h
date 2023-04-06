@@ -6,11 +6,13 @@
 #include <string>
 
 #include "alk-measure-common.h"
+#include "reading-store.h"
+
 
 namespace buff {
 namespace web_server {
 
-std::string renderMeasurementList(char *temp, size_t temp_size, const std::list<alk_measure::AlkReading> mostRecentReadings) {
+std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
     std::string measurementString = "<ol>\n";
     const auto alkMeasureTemplate = R"(
       <li class="measurement">
@@ -38,7 +40,7 @@ std::string renderFooter(char *temp, size_t temp_size) {
     return temp;
 }
 
-void renderRoot(std::string &out, const std::list<alk_measure::AlkReading> mostRecentReadings) {
+void renderRoot(std::string &out, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
     char temp[400];
     memset(temp, 0, 400);
 
