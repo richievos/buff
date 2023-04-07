@@ -13,17 +13,19 @@ namespace buff {
 namespace web_server {
 
 std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
-    std::string measurementString = "<ol>\n";
+    std::string measurementString = "<table>\n";
     const auto alkMeasureTemplate = R"(
-      <li class="measurement">
-        <span class="asOf">%u:</span> <span class="alkReadingDH">%f</span>
-      </li>
+      <tr class="measurement">
+        <td class="asOf">%u:</td>
+        <td class="title">%s</td>
+        <td class="alkReadingDKH">%.1f</td>
+      </tr>
     )";
     for (auto measurement : mostRecentReadings) {
         snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMSAdjusted, measurement.alkReadingDKH);
         measurementString += temp;
     }
-    measurementString += "\n</ol>";
+    measurementString += "\n</table>";
     return measurementString;
 }
 

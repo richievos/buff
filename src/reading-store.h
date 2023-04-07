@@ -16,6 +16,7 @@ const char* PREFERENCE_NS = "buff";
 struct PersistedAlkReading {
     unsigned long asOfMSAdjusted;
     float alkReadingDKH;
+    std::string title;
 };
 
 /************
@@ -23,10 +24,16 @@ struct PersistedAlkReading {
  ***********/
 Preferences preferences;
 
+const size_t MAX_TITLE_LEN = 10;
+
+// +1 to avoid inserting a null pointer at the beginning of the string
+const auto KEY_I_OFFSET = static_cast<unsigned char>(1);
 #define DKH_KEY(i) \
-    { i, 'D', 0 }
+    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'D', 0 }
 #define AS_OF_KEY(i) \
-    { i, 'A', 0 }
+    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'A', 0 }
+#define TITLE_KEY(i) \
+    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'T', 0 }
 #define INDEX_KEY \
     { 'I', 0 }
 
@@ -35,6 +42,8 @@ void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading
     preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
     char asOfKey[] = AS_OF_KEY(i);
     preferences.putULong(asOfKey, reading.asOfMSAdjusted);
+    char titleKey[] = TITLE_KEY(i);
+    preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());
 }
 
 PersistedAlkReading readAlkReading(const unsigned char i) {
@@ -44,6 +53,8 @@ PersistedAlkReading readAlkReading(const unsigned char i) {
     reading.alkReadingDKH = numeric::byteToSmallFloat(preferences.getUChar(dkhKey, 0));
     char asOfKey[] = AS_OF_KEY(i);
     reading.asOfMSAdjusted = preferences.getULong(asOfKey, 0);
+    char titleKey[] = AS_OF_KEY(i);
+    reading.title = preferences.getString(titleKey).c_str();
 
     return reading;
 }

@@ -104,6 +104,15 @@ bool hitPHTarget(const float ph) {
     return ph < practicalTargetPH;
 }
 
+float round2Decimals(const float f) {
+    return roundf(f*100.0) / 100.0;
+}
+float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &alkMeasureConf) {
+    float dkh = (alkReading.reagentVolumeML / alkReading.tankWaterVolumeML * 280.0) * (alkMeasureConf.reagentStrengthMoles / 0.1);
+
+    return round2Decimals(dkh);
+}
+
 template <size_t NUM_SAMPLES>
 class MeasurementStepResult {
    public:
@@ -118,6 +127,8 @@ class MeasurementStepResult {
     std::shared_ptr<ph::controller::PHReadingStats<NUM_SAMPLES>> measuredPHStats;
 
     AlkMeasurementConfig alkMeasureConf;
+
+    std::string title;
 };
 
 class AlkMeasurer {
@@ -130,18 +141,19 @@ class AlkMeasurer {
     AlkMeasurer(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig alkMeasureConf, const std::shared_ptr<ph::controller::PHReader> phReader) : _buffDosers(buffDosers), _defaultAlkMeasurementConf(alkMeasureConf), _phReader(phReader) {}
 
     template <size_t NUM_SAMPLES>
-    MeasurementStepResult<NUM_SAMPLES> begin(const unsigned long asOfMS, const unsigned long asOfMSAdjusted) {
-        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf, asOfMS, asOfMSAdjusted);
+    MeasurementStepResult<NUM_SAMPLES> begin(const unsigned long asOfMS, const unsigned long asOfMSAdjusted, const std::string &title) {
+        return begin<NUM_SAMPLES>(_defaultAlkMeasurementConf, asOfMS, asOfMSAdjusted, title);
     }
 
     template <size_t NUM_SAMPLES>
-    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf, const unsigned long asOfMS, const unsigned long asOfMSAdjusted) {
+    MeasurementStepResult<NUM_SAMPLES> begin(const AlkMeasurementConfig &alkMeasureConf, const unsigned long asOfMS, const unsigned long asOfMSAdjusted, const std::string &title) {
         MeasurementStepResult<NUM_SAMPLES> r;
         r.nextAction = PRIME;
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
         r.asOfMS = asOfMS;
         r.asOfMSAdjusted = asOfMSAdjusted;
+        r.title = title;
         return r;
     }
 
@@ -213,7 +225,7 @@ class AlkMeasurer {
                 assert(false);
             }
 
-            r.alkReading.alkReadingDKH = (r.alkReading.reagentVolumeML / r.alkReading.tankWaterVolumeML * 280.0) * (r.alkMeasureConf.reagentStrengthMoles / 0.1);
+            r.alkReading.alkReadingDKH = calcAlkReading(r.alkReading, r.alkMeasureConf);
 
             r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
             r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
@@ -265,8 +277,8 @@ class AlkMeasureLooper {
 };
 
 template <size_t NUM_SAMPLES>
-static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<buff_time::TimeWrapper> timeClient, const AlkMeasurementConfig &beginAlkMeasureConf) {
-    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf, millis(), timeClient->getAdjustedTimeMS());
+static std::unique_ptr<AlkMeasureLooper<NUM_SAMPLES>> beginAlkMeasureLoop(std::shared_ptr<AlkMeasurer> alkMeasurer, std::shared_ptr<mqtt::Publisher> publisher, std::shared_ptr<buff_time::TimeWrapper> timeClient, const AlkMeasurementConfig &beginAlkMeasureConf, const std::string &title) {
+    auto beginResult = alkMeasurer->begin<NUM_SAMPLES>(beginAlkMeasureConf, millis(), timeClient->getAdjustedTimeMS(), title);
     auto looper = std::make_unique<AlkMeasureLooper<NUM_SAMPLES>>(alkMeasurer, publisher, timeClient, beginResult);
 
     return std::move(looper);
