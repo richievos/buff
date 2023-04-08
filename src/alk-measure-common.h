@@ -16,6 +16,8 @@ struct AlkReading {
     float alkReadingDKH = 0.0;
 
     ph::PHReading phReading;
+
+    std::string title;
 };
 
 struct AlkMeasurementConfig {

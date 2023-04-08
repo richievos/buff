@@ -24,36 +24,42 @@ struct PersistedAlkReading {
  ***********/
 Preferences preferences;
 
-const size_t MAX_TITLE_LEN = 10;
+const size_t MAX_TITLE_LEN = 30;
 
 // +1 to avoid inserting a null pointer at the beginning of the string
 const auto KEY_I_OFFSET = static_cast<unsigned char>(1);
 #define DKH_KEY(i) \
-    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'D', 0 }
+    { static_cast<unsigned char>(KEY_I_OFFSET + i), 'D', 0 }
 #define AS_OF_KEY(i) \
-    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'A', 0 }
+    { static_cast<unsigned char>(KEY_I_OFFSET + i), 'A', 0 }
 #define TITLE_KEY(i) \
-    { static_cast<unsigned char>(KEY_I_OFFSET+i), 'T', 0 }
+    { static_cast<unsigned char>(KEY_I_OFFSET + i), 'T', 0 }
 #define INDEX_KEY \
     { 'I', 0 }
 
 void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading) {
     char dkhKey[] = DKH_KEY(i);
-    preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
     char asOfKey[] = AS_OF_KEY(i);
-    preferences.putULong(asOfKey, reading.asOfMSAdjusted);
     char titleKey[] = TITLE_KEY(i);
-    preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());
+
+    preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
+    preferences.putULong(asOfKey, reading.asOfMSAdjusted);
+    if (reading.title.size() >= 0) {
+        Serial.println("preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());");
+        Serial.println(reading.title.substr(0, MAX_TITLE_LEN).c_str());
+        preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());
+    }
 }
 
 PersistedAlkReading readAlkReading(const unsigned char i) {
     PersistedAlkReading reading;
 
     char dkhKey[] = DKH_KEY(i);
-    reading.alkReadingDKH = numeric::byteToSmallFloat(preferences.getUChar(dkhKey, 0));
     char asOfKey[] = AS_OF_KEY(i);
+    char titleKey[] = TITLE_KEY(i);
+
+    reading.alkReadingDKH = numeric::byteToSmallFloat(preferences.getUChar(dkhKey, 0));
     reading.asOfMSAdjusted = preferences.getULong(asOfKey, 0);
-    char titleKey[] = AS_OF_KEY(i);
     reading.title = preferences.getString(titleKey).c_str();
 
     return reading;

@@ -127,8 +127,6 @@ class MeasurementStepResult {
     std::shared_ptr<ph::controller::PHReadingStats<NUM_SAMPLES>> measuredPHStats;
 
     AlkMeasurementConfig alkMeasureConf;
-
-    std::string title;
 };
 
 class AlkMeasurer {
@@ -153,7 +151,7 @@ class AlkMeasurer {
         r.alkMeasureConf = alkMeasureConf;
         r.asOfMS = asOfMS;
         r.asOfMSAdjusted = asOfMSAdjusted;
-        r.title = title;
+        r.alkReading.title = title;
         return r;
     }
 
