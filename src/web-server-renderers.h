@@ -10,6 +10,23 @@
 namespace buff {
 namespace web_server {
 
+std::string renderTriggerForm(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
+    std::string formTemplate = R"(
+    <section>
+      <form class="form-inline" action="/execute/measure_alk">
+        <label for="title">Measurement Title</label>
+        <input name="title" id="title" />
+        <input type="hidden" name="asOf" id="asOf" value="%u"/>
+        <input type="submit" value="Trigger Reading">
+      </form>
+    </section>
+  )";
+
+    snprintf(temp, temp_size, formTemplate.c_str(), renderTimeMS);
+
+    return temp;
+}
+
 std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     std::string measurementString = "<table>\n";
     const auto alkMeasureTemplate = R"(
@@ -44,9 +61,16 @@ std::string renderFooter(char *temp, size_t temp_size, const unsigned long rende
     return temp;
 }
 
-void renderRoot(std::string &out, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
+void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     char temp[400];
     memset(temp, 0, 400);
+
+    std::string triggeredContent = "";
+    if (triggered == "true") {
+        triggeredContent = R"(<section id="alert success"><div>Successfully triggered a measurement!</div></section>)";
+    } else if (triggered == "false") {
+        triggeredContent = R"(<section id="alert failure"><div>Failed to trigger a measurement!</div></section>)";
+    }
 
     out += R"(
 <html>
@@ -57,8 +81,11 @@ void renderRoot(std::string &out, const unsigned long renderTimeMS, const std::v
     </style>
   </head>
   <body>
-    <header>Buff</header>
+    <header><h1 id="title">Buff</h1></header>
     )";
+    out += triggeredContent;
+
+    out += renderTriggerForm(temp, 400, renderTimeMS);
     out += renderMeasurementList(temp, 400, mostRecentReadings);
     out += renderFooter(temp, 400, renderTimeMS);
     out += R"(

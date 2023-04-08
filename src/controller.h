@@ -103,6 +103,20 @@ std::shared_ptr<doser::Doser> selectDoser(doser::BuffDosers& buffDosers, const S
     return buffDosers.selectDoser(measurementDoserType);
 }
 
+unsigned long lastMeasureAsOf = 0;
+
+void runAfterIdempotenceCheck(const unsigned long asOf, std::function<void()> f) {
+    if (asOf <= lastMeasureAsOf) {
+        Serial.print("Refusing to trigger because of time mismatch (idempotence check). asOf=");
+        Serial.print(asOf);
+        Serial.print("<= lastMeasureAsOf=");
+        Serial.print(lastMeasureAsOf);
+        Serial.println();
+    } else {
+        f();
+    }
+}
+
 #define LOAD_FROM_DOC(target, name, type)    \
     if (doc.containsKey(#name)) {            \
         target.name = doc[#name].as<type>(); \
@@ -188,7 +202,13 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         auto title = doc["title"].as<std::string>();
         title = title.substr(0, reading_store::MAX_TITLE_LEN);
 
-        autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, beginAlkMeasureConf, title));
+        auto asOf = millis();
+        if (doc.containsKey("asOf")) {
+            asOf = doc["asOf"].as<unsigned long>();
+        }
+        runAfterIdempotenceCheck(asOf, [&]() {
+            autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, beginAlkMeasureConf, title));
+        });
     };
 
     topicsToProcessor["execute/measure_alk/manual/begin"] = [&](const std::string& payload) {
@@ -300,20 +320,26 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 void loopAlkMeasurement(unsigned long loopAsOf) {
     if (autoMeasureLooper != nullptr &&
         (autoMeasureLooper->getLastStepResult().asOfMS + ALK_STEP_INTERVAL_MS) <= loopAsOf) {
-            Serial.print(loopAsOf);
-            Serial.print(" Performing measurement step");
-            auto& result = autoMeasureLooper->nextStep();
-            Serial.print(loopAsOf);
-            Serial.println(" Completed measurement step");
-            debugOutputAction(result);
-            if (result.nextAction == alk_measure::MeasurementAction::MEASURE_DONE) {
-                Serial.println("Completed measurement loop");
-                autoMeasureLooper.reset();
-            }
+        Serial.print(loopAsOf);
+        Serial.print(" Performing measurement step");
+        auto& result = autoMeasureLooper->nextStep();
+        Serial.print(loopAsOf);
+        Serial.println(" Completed measurement step");
+        debugOutputAction(result);
+        if (result.nextAction == alk_measure::MeasurementAction::MEASURE_DONE) {
+            Serial.println("Completed measurement loop");
+            autoMeasureLooper.reset();
         }
+    }
 }
 
 void loopController() {
+    auto pendingRequest = webServer->retrievePendingFeedRequest();
+    if (pendingRequest) {
+        runAfterIdempotenceCheck(pendingRequest->asOf, [&]() {
+            autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, alkMeasurer->getDefaultAlkMeasurementConfig(), pendingRequest->title));
+        });
+    }
     webServer->loopWebServer();
     loopAlkMeasurement(millis());
 }

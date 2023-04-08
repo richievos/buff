@@ -13,6 +13,13 @@
 namespace buff {
 namespace web_server {
 
+struct TriggerRequest {
+    std::string title;
+    unsigned long asOf;
+};
+
+std::unique_ptr<TriggerRequest> pendingTrigger;
+
 template <size_t N, int PORT = 80>
 class BuffWebServer {
    private:
@@ -25,9 +32,33 @@ class BuffWebServer {
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _timeClient->getAdjustedTimeMS(), _readingStore->getReadingsSortedByAsOf());
+        renderRoot(bodyText, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeMS(), _readingStore->getReadingsSortedByAsOf());
 
         _server.send(200, "text/html", bodyText.c_str());
+    }
+
+    void handleTrigger() {
+        String asOfString = _server.arg("asOf");
+        unsigned long asOf = 0;
+
+        if (asOfString == "") {
+            Serial.println("Missing asOf!");
+        } else {
+            asOf = atol(_server.arg("asOf").c_str());
+        }
+        
+        if (asOf > 0) {
+            auto trigger = std::make_unique<TriggerRequest>();
+            trigger->title = _server.arg("title").c_str();
+            trigger->asOf = asOf;
+            pendingTrigger = std::move(trigger);
+
+            _server.sendHeader("Location", "/?triggered=true", true);
+            _server.send(302, "text/plain", "triggered=true");
+        } else {
+            _server.sendHeader("Location", "/?triggered=false", true);
+            _server.send(302, "text/plain", "triggered=false");
+        }
     }
 
     void handleNotFound() {
@@ -51,6 +82,7 @@ class BuffWebServer {
         _readingStore = rs;
 
         _server.on("/", [&]() { handleRoot(); });
+        _server.on("/execute/measure_alk", [&]() { handleTrigger(); });
         // _server.on("/test.svg", drawGraph);
         // _server.on("/inline", []() {
         //     _server.send(200, "text/plain", "this works as well");
@@ -63,6 +95,15 @@ class BuffWebServer {
     void loopWebServer() {
         _server.handleClient();
     }
+
+    std::unique_ptr<TriggerRequest> retrievePendingFeedRequest() {
+    if (pendingTrigger) {
+        auto feedReq = std::move(pendingTrigger);
+        pendingTrigger = nullptr;
+        return std::move(feedReq);
+    }
+    return nullptr;
+}
 };
 
 }  // namespace web_server
