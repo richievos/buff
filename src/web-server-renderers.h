@@ -38,7 +38,7 @@ std::string renderFooter(char *temp, size_t temp_size, const unsigned long rende
     int millisHr = millisMin / 60;
 
     snprintf(temp, temp_size,
-             "<footer>As Of: %02d:%02d:%02d, Uptime: %02d:%02d:%02d</footer>",
+             "<footer>Current time: %02d:%02d:%02d, Uptime: %02d:%02d:%02d</footer>",
              renderTimeHr, renderTimeMin % 60, renderTimeSec % 60,
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
