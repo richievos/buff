@@ -25,7 +25,7 @@ class BuffWebServer {
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _timeClient->getAdjustedTimeMS(), _readingStore->getReadings());
+        renderRoot(bodyText, _timeClient->getAdjustedTimeMS(), _readingStore->getReadingsSortedByAsOf());
 
         _server.send(200, "text/html", bodyText.c_str());
     }

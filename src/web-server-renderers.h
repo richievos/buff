@@ -1,18 +1,16 @@
 #pragma once
 
-#include "Arduino.h"
-
 #include <list>
 #include <string>
 
+#include "Arduino.h"
 #include "alk-measure-common.h"
 #include "reading-store.h"
-
 
 namespace buff {
 namespace web_server {
 
-std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
+std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     std::string measurementString = "<table>\n";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
@@ -21,8 +19,9 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
         <td class="alkReadingDKH">%.1f</td>
       </tr>
     )";
-    for (auto measurement : mostRecentReadings) {
-        snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMSAdjusted, measurement.alkReadingDKH);
+    for (auto &measurementRef : mostRecentReadings) {
+        auto &measurement = measurementRef.get();
+        snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMSAdjusted, measurement.title.c_str(), measurement.alkReadingDKH);
         measurementString += temp;
     }
     measurementString += "\n</table>";
@@ -30,18 +29,22 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
 }
 
 std::string renderFooter(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
-    int sec = renderTimeMS / 1000;
-    int min = sec / 60;
-    int hr = min / 60;
+    int renderTimeSec = renderTimeMS / 1000;
+    int renderTimeMin = renderTimeSec / 60;
+    int renderTimeHr = renderTimeMin / 60;
 
+    int millisSec = millis() / 1000;
+    int millisMin = millisSec / 60;
+    int millisHr = millisMin / 60;
 
     snprintf(temp, temp_size,
-             "<footer>Uptime: %02d:%02d:%02d</footer>",
-             hr, min % 60, sec % 60);
+             "<footer>As Of: %02d:%02d:%02d, Uptime: %02d:%02d:%02d</footer>",
+             renderTimeHr, renderTimeMin % 60, renderTimeSec % 60,
+             millisHr, millisMin % 60, millisSec % 60);
     return temp;
 }
 
-void renderRoot(std::string &out, const unsigned long renderTimeMS, const std::vector<reading_store::PersistedAlkReading> mostRecentReadings) {
+void renderRoot(std::string &out, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     char temp[400];
     memset(temp, 0, 400);
 

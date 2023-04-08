@@ -2,6 +2,7 @@
 
 #include <Preferences.h>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -99,7 +100,15 @@ class ReadingStore {
         return _mostRecentReadings;
     }
 
-    void updateTipIndex(const unsigned char tipIndex) {
+    const std::vector<std::reference_wrapper<PersistedAlkReading>> getReadingsSortedByAsOf() {
+        std::vector<std::reference_wrapper<PersistedAlkReading>> sorted{_mostRecentReadings.begin(), _mostRecentReadings.end()};
+        std::sort(sorted.begin(), sorted.end(),
+                  [](std::reference_wrapper<PersistedAlkReading>& a, std::reference_wrapper<PersistedAlkReading>& b) { return a.get().asOfMSAdjusted > b.get().asOfMSAdjusted; });
+        return sorted;
+    }
+
+    void
+    updateTipIndex(const unsigned char tipIndex) {
         _tipIndex = tipIndex;
     }
 
