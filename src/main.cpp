@@ -23,6 +23,7 @@
 #include "mqtt.h"
 #include "mywifi.h"
 #include "ntp.h"
+#include "ota.h"
 #include "ph-controller.h"
 
 namespace buff {
@@ -70,6 +71,7 @@ void setup() {
     Serial.begin(115200);
 
     richiev::connectWifi(hostname, wifiSSID, wifiPassword);
+    richiev::ota::setupOTA(hostname);
     buffDosers = std::move(doser::setupDosers(doserConfigs, doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
@@ -94,6 +96,7 @@ void loop() {
     controller::loopController();
 
     richiev::mqtt::loopMQTT(mqttBroker, mqttClient);
+    richiev::ota::loopOTA();
 }
 
 }  // namespace buff
