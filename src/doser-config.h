@@ -39,6 +39,11 @@ struct DoserConfig {
     float mlPerFullRotation;
     int motorRPM;
     int microStepType;
+
+    // used to flip the rotation
+    // A4988 = 1
+    // TMC2208 = -1
+    int clockwiseDirectionMultiplier;
 };
 
 

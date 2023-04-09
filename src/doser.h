@@ -45,7 +45,8 @@ class Doser {
     virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
         if (aCalibrator == nullptr) aCalibrator = calibrator.get();
 
-        const int degreesRotation = aCalibrator->degreesForMLOutput(outputML);
+        const int degreesRotation = aCalibrator->degreesForMLOutput(outputML) *
+                                    config.clockwiseDirectionMultiplier;
 
         Serial.print("Outputting mlToOutput=");
         Serial.print(outputML);

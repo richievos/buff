@@ -35,9 +35,8 @@ std::shared_ptr<buff_time::TimeWrapper> timeClient = nullptr;
 const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
 const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
 
-const unsigned int READINGS_TO_KEEP = 10;
-std::unique_ptr<web_server::BuffWebServer<READINGS_TO_KEEP>> webServer;
-std::shared_ptr<reading_store::ReadingStore<READINGS_TO_KEEP>> readingStore;
+std::unique_ptr<web_server::BuffWebServer<reading_store::READINGS_TO_KEEP>> webServer;
+std::shared_ptr<reading_store::ReadingStore<reading_store::READINGS_TO_KEEP>> readingStore;
 
 const unsigned int ALK_STEP_INTERVAL_MS = 1000;
 
@@ -168,6 +167,8 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         auto doc = parseInput(payload);
         auto doser = selectDoser(*buffDosersPtr, doc);
 
+        doser::enableDosers();
+
         auto outputML = doc.containsKey("ml") ? doc["ml"].as<float>() : DEFAULT_TRIGGER_OUTPUT_ML;
         if (doc.containsKey("mlPerFullRotation")) {
             doser::Calibrator calibrator(doc["mlPerFullRotation"].as<float>());
@@ -290,6 +291,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         reading_store::PersistedAlkReading alkReading;
         LOAD_FROM_DOC(alkReading, asOfMSAdjusted, unsigned long);
         LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
+        alkReading.title = doc["title"].as<std::string>();
         readingStore->addReading(alkReading);
         persistReadingStore(readingStore);
     };
@@ -310,8 +312,8 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 
     std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
-    readingStore = std::move(reading_store::setupReadingStore<READINGS_TO_KEEP>());
-    webServer = std::make_unique<web_server::BuffWebServer<READINGS_TO_KEEP>>(timeClient);
+    readingStore = std::move(reading_store::setupReadingStore<reading_store::READINGS_TO_KEEP>());
+    webServer = std::make_unique<web_server::BuffWebServer<reading_store::READINGS_TO_KEEP>>(timeClient);
 
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);

@@ -25,7 +25,8 @@ struct PersistedAlkReading {
  ***********/
 Preferences preferences;
 
-const size_t MAX_TITLE_LEN = 30;
+const size_t MAX_TITLE_LEN = 10;
+const size_t READINGS_TO_KEEP = 30;
 
 // +1 to avoid inserting a null pointer at the beginning of the string
 const auto KEY_I_OFFSET = static_cast<unsigned char>(1);
@@ -46,8 +47,6 @@ void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading
     preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
     preferences.putULong(asOfKey, reading.asOfMSAdjusted);
     if (reading.title.size() >= 0) {
-        Serial.println("preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());");
-        Serial.println(reading.title.substr(0, MAX_TITLE_LEN).c_str());
         preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());
     }
 }
