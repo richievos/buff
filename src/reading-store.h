@@ -15,7 +15,7 @@ namespace reading_store {
 const char* PREFERENCE_NS = "buff";
 
 struct PersistedAlkReading {
-    unsigned long asOfMSAdjusted;
+    unsigned long asOfAdjustedSec;
     float alkReadingDKH;
     std::string title;
 };
@@ -45,7 +45,7 @@ void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading
     char titleKey[] = TITLE_KEY(i);
 
     preferences.putUChar(dkhKey, numeric::smallFloatToByte(reading.alkReadingDKH));
-    preferences.putULong(asOfKey, reading.asOfMSAdjusted);
+    preferences.putULong(asOfKey, reading.asOfAdjustedSec);
     if (reading.title.size() >= 0) {
         preferences.putString(titleKey, reading.title.substr(0, MAX_TITLE_LEN).c_str());
     }
@@ -59,7 +59,7 @@ PersistedAlkReading readAlkReading(const unsigned char i) {
     char titleKey[] = TITLE_KEY(i);
 
     reading.alkReadingDKH = numeric::byteToSmallFloat(preferences.getUChar(dkhKey, 0));
-    reading.asOfMSAdjusted = preferences.getULong(asOfKey, 0);
+    reading.asOfAdjustedSec = preferences.getULong(asOfKey, 0);
     reading.title = preferences.getString(titleKey).c_str();
 
     return reading;
@@ -102,7 +102,7 @@ class ReadingStore {
     const std::vector<std::reference_wrapper<PersistedAlkReading>> getReadingsSortedByAsOf() {
         std::vector<std::reference_wrapper<PersistedAlkReading>> sorted{_mostRecentReadings.begin(), _mostRecentReadings.end()};
         std::sort(sorted.begin(), sorted.end(),
-                  [](std::reference_wrapper<PersistedAlkReading>& a, std::reference_wrapper<PersistedAlkReading>& b) { return a.get().asOfMSAdjusted > b.get().asOfMSAdjusted; });
+                  [](std::reference_wrapper<PersistedAlkReading>& a, std::reference_wrapper<PersistedAlkReading>& b) { return a.get().asOfAdjustedSec > b.get().asOfAdjustedSec; });
         return sorted;
     }
 

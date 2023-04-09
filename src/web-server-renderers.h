@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <list>
 #include <string>
 
@@ -10,19 +11,29 @@
 namespace buff {
 namespace web_server {
 
-std::string renderTriggerForm(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
-    std::string formTemplate = R"(
-    <section>
-      <form class="form-inline" action="/execute/measure_alk">
-        <label for="title">Measurement Title</label>
-        <input name="title" id="title" />
-        <input type="hidden" name="asOf" id="asOf" value="%u"/>
-        <input type="submit" value="Trigger Reading">
-      </form>
-    </section>
-  )";
+std::string renderTime(char *temp, size_t temp_size, const unsigned long timeInSec) {
+    // millis to time
+    const time_t rawtime = (time_t)timeInSec;
+    struct tm *dt = gmtime(&rawtime);
 
-    snprintf(temp, temp_size, formTemplate.c_str(), renderTimeMS);
+    // format
+    strftime(temp, temp_size, "%Y-%m-%d %H:%M:%S", dt);
+    return temp;
+}
+
+std::string renderTriggerForm(char *temp, size_t temp_size, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
+    std::string formTemplate = R"(
+      <section>
+        <form class="form-inline" action="/execute/measure_alk">
+          <label for="title">Measurement Title</label>
+          <input name="title" id="title" value="%s" />
+          <input type="hidden" name="asOf" id="asOf" value="%u"/>
+          <input type="submit" value="Trigger Reading">
+        </form>
+      </section>
+    )";
+
+    snprintf(temp, temp_size, formTemplate.c_str(), mostRecentTitle.c_str(), renderTimeMS);
 
     return temp;
 }
@@ -31,14 +42,16 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
     std::string measurementString = "<table>\n";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
-        <td class="asOf">%u:</td>
+        <td class="asOf">%s</td>
         <td class="title">%s</td>
         <td class="alkReadingDKH">%.1f</td>
       </tr>
     )";
     for (auto &measurementRef : mostRecentReadings) {
         auto &measurement = measurementRef.get();
-        snprintf(temp, temp_size, alkMeasureTemplate, measurement.asOfMSAdjusted, measurement.title.c_str(), measurement.alkReadingDKH);
+        snprintf(temp, temp_size, alkMeasureTemplate,
+                 renderTime(temp, temp_size, measurement.asOfAdjustedSec).c_str(),
+                 measurement.title.c_str(), measurement.alkReadingDKH);
         measurementString += temp;
     }
     measurementString += "\n</table>";
@@ -46,17 +59,13 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
 }
 
 std::string renderFooter(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
-    int renderTimeSec = renderTimeMS / 1000;
-    int renderTimeMin = renderTimeSec / 60;
-    int renderTimeHr = renderTimeMin / 60;
-
-    int millisSec = millis() / 1000;
+    int millisSec = millis();
     int millisMin = millisSec / 60;
     int millisHr = millisMin / 60;
 
     snprintf(temp, temp_size,
-             "<footer>Current time: %02d:%02d:%02d, Uptime: %02d:%02d:%02d</footer>",
-             renderTimeHr, renderTimeMin % 60, renderTimeSec % 60,
+             "<footer>Current time: %s, Uptime: %02d:%02d:%02d</footer>",
+             renderTime(temp, temp_size, renderTimeMS).c_str(),
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
 }
@@ -64,6 +73,11 @@ std::string renderFooter(char *temp, size_t temp_size, const unsigned long rende
 void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     char temp[400];
     memset(temp, 0, 400);
+
+    std::string mostRecentTitle = "";
+    if (mostRecentReadings.size() > 0) {
+        mostRecentTitle = mostRecentReadings.front().get().title;
+    }
 
     std::string triggeredContent = "";
     if (triggered == "true") {
@@ -85,7 +99,7 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
     )";
     out += triggeredContent;
 
-    out += renderTriggerForm(temp, 400, renderTimeMS);
+    out += renderTriggerForm(temp, 400, renderTimeMS, mostRecentTitle);
     out += renderMeasurementList(temp, 400, mostRecentReadings);
     out += renderFooter(temp, 400, renderTimeMS);
     out += R"(

@@ -42,7 +42,7 @@ class NTPTimeWrapper : public buff::buff_time::TimeWrapper {
 
    public:
     NTPTimeWrapper(std::shared_ptr<NTPClient> timeClient): _timeClient(timeClient) {}
-    virtual unsigned long getAdjustedTimeMS() {
+    virtual unsigned long getAdjustedTimeSeconds() {
         return _timeClient->getEpochTime();
     }
 };

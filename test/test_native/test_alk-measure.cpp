@@ -218,16 +218,16 @@ void testPublishResultIsReadable() {
 
         step = looper->nextStep();
         TEST_ASSERT_EQUAL(FAKED_MILLIS, step.asOfMS);
-        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.asOfAdjustedSec);
         TEST_ASSERT_EQUAL(FAKED_MILLIS, step.alkReading.asOfMS);
-        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.alkReading.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.alkReading.asOfAdjustedSec);
         TEST_ASSERT_EQUAL(FAKED_MILLIS, step.primeAndCleanupScratchData.asOfMS);
-        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.primeAndCleanupScratchData.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.primeAndCleanupScratchData.asOfAdjustedSec);
     }
 
     Verify(Method((*publisherMock), publishAlkReading).Matching([](const alk_measure::AlkReading &alkReading) {
         TEST_ASSERT_EQUAL(FAKED_MILLIS, alkReading.asOfMS);
-        TEST_ASSERT_EQUAL(FAKED_MILLIS, alkReading.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, alkReading.asOfAdjustedSec);
         return true;
     })).Exactly(Once);
 }
