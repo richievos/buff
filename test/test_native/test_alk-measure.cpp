@@ -12,6 +12,7 @@
 
 namespace test_alk_measure {
 using namespace buff;
+using namespace fakeit;
 
 class MockDoser : public doser::Doser {
    public:
@@ -22,8 +23,6 @@ class MockDoser : public doser::Doser {
 #define mockptrize(mockPtr) &mockPtr->get(), [](...) {}
 
 std::unique_ptr<doser::BuffDosers> buildMockDosers() {
-    using namespace fakeit;
-
     auto buffDosers = std::make_unique<doser::BuffDosers>();
     for (auto i : buff::MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER) {
         auto doser = std::make_shared<MockDoser>();
@@ -34,14 +33,14 @@ std::unique_ptr<doser::BuffDosers> buildMockDosers() {
 };
 
 auto buildPublisherMock() {
-    using namespace fakeit;
     auto publisherMock = std::make_shared<Mock<mqtt::Publisher>>();
     When(Method((*publisherMock), publishAlkReading)).AlwaysReturn();
     return publisherMock;
 }
 
+const unsigned long FAKED_MILLIS = 200000;
+
 void stubs() {
-    using namespace fakeit;
     When(OverloadedMethod(ArduinoFake(Serial), print, size_t(const __FlashStringHelper *))).AlwaysReturn();
     When(OverloadedMethod(ArduinoFake(Serial), print, size_t(const String &))).AlwaysReturn();
     When(OverloadedMethod(ArduinoFake(Serial), print, size_t(const char[]))).AlwaysReturn();
@@ -67,7 +66,7 @@ void stubs() {
     When(OverloadedMethod(ArduinoFake(Serial), println, size_t(const Printable &))).AlwaysReturn();
     When(OverloadedMethod(ArduinoFake(Serial), println, size_t(void))).AlwaysReturn();
 
-    When(Method(ArduinoFake(), millis)).AlwaysReturn(200000);
+    When(Method(ArduinoFake(), millis)).AlwaysReturn(FAKED_MILLIS);
 
     When(Method(ArduinoFake(), digitalWrite)).AlwaysReturn();
 }
@@ -89,7 +88,6 @@ void testBeginStartsEmpty() {
 }
 
 void testSequenceWithSingleDose() {
-    using namespace fakeit;
     stubs();
 
     auto buffDosers = buildMockDosers();
@@ -190,12 +188,54 @@ void testSequenceWithSingleDose() {
     Verify(Method((*publisherMock), publishAlkReading).Matching([](const alk_measure::AlkReading &alkReading) { return abs(alkReading.alkReadingDKH - 4.34) < 0.01; })).Exactly(Once);
 }
 
+void testPublishResultIsReadable() {
+    stubs();
+
+    auto buffDosers = buildMockDosers();
+    auto fillDoser = buffDosers->selectDoser(MeasurementDoserType::FILL);
+
+    auto x = std::vector<float>({4.5, 4.5, 4.5});
+    std::shared_ptr<ph::controller::PHReader> phReader = std::move(buildPHReader(x));
+
+    alk_measure::AlkMeasurementConfig alkMeasureConf = {};
+
+    auto publisherMock = buildPublisherMock();
+    std::shared_ptr<mqtt::Publisher> publisher(mockptrize(publisherMock));
+    auto timeClient = std::make_shared<buff_time::TimeWrapper>();
+
+    auto measurer = std::make_shared<buff::alk_measure::AlkMeasurer>(std::move(buffDosers), alkMeasureConf, phReader);
+
+    auto begin = measurer->begin<1>(FAKED_MILLIS, FAKED_MILLIS, "foobar");
+    auto looper = alk_measure::beginAlkMeasureLoop<1>(std::shared_ptr<alk_measure::AlkMeasurer>(measurer),
+                                                      publisher,
+                                                      timeClient,
+                                                      alkMeasureConf,
+                                                      std::string("testTitle"));
+    int i = 0;
+    auto step = begin;
+    while (step.nextAction != alk_measure::MeasurementAction::MEASURE_DONE) {
+        TEST_ASSERT_LESS_THAN(50, i++);
+
+        step = looper->nextStep();
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.asOfMS);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.alkReading.asOfMS);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.alkReading.asOfMSAdjusted);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.primeAndCleanupScratchData.asOfMS);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, step.primeAndCleanupScratchData.asOfMSAdjusted);
+    }
+
+    Verify(Method((*publisherMock), publishAlkReading).Matching([](const alk_measure::AlkReading &alkReading) {
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, alkReading.asOfMS);
+        TEST_ASSERT_EQUAL(FAKED_MILLIS, alkReading.asOfMSAdjusted);
+        return true;
+    })).Exactly(Once);
+}
+
 }  // namespace test_alk_measure
 
 void runAlkMeasureTests() {
-    // When(OverloadedMethod(ArduinoFake(Serial), print, size_t(char))).AlwaysReturn();
-    // When(OverloadedMethod(ArduinoFake(Serial), print, size_t(int, int))).AlwaysReturn();
-
     RUN_TEST(test_alk_measure::testBeginStartsEmpty);
     RUN_TEST(test_alk_measure::testSequenceWithSingleDose);
+    RUN_TEST(test_alk_measure::testPublishResultIsReadable);
 }

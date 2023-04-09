@@ -127,6 +127,11 @@ class MeasurementStepResult {
     std::shared_ptr<ph::controller::PHReadingStats<NUM_SAMPLES>> measuredPHStats;
 
     AlkMeasurementConfig alkMeasureConf;
+
+    void setTime(const unsigned long asOf, const unsigned long asOfMSAdjusted) {
+        this->asOfMS = alkReading.asOfMS = primeAndCleanupScratchData.asOfMS = asOf;
+        this->asOfMSAdjusted = alkReading.asOfMSAdjusted = primeAndCleanupScratchData.asOfMSAdjusted = asOfMSAdjusted;
+    }
 };
 
 class AlkMeasurer {
@@ -149,8 +154,7 @@ class AlkMeasurer {
         r.nextAction = PRIME;
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
-        r.asOfMS = asOfMS;
-        r.asOfMSAdjusted = asOfMSAdjusted;
+        r.setTime(asOfMS, asOfMSAdjusted);
         r.alkReading.title = title;
         return r;
     }
@@ -171,8 +175,7 @@ class AlkMeasurer {
 
             r.nextAction = CLEAN_AND_FILL;
 
-            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
-            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
+            r.setTime(millis(), timeClient->getAdjustedTimeMS());
             return r;
         } else if (prevResult.nextAction == CLEAN_AND_FILL) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -186,8 +189,7 @@ class AlkMeasurer {
 
             r.nextAction = MEASURE;
             r.nextMeasurementStepAction = STEP_INITIALIZE;
-            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
-            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
+            r.setTime(millis(), timeClient->getAdjustedTimeMS());
             return r;
         } else if (prevResult.nextAction == MEASURE) {
             const float sleepDurationBetweenSamples = 1000;
@@ -225,8 +227,7 @@ class AlkMeasurer {
 
             r.alkReading.alkReadingDKH = calcAlkReading(r.alkReading, r.alkMeasureConf);
 
-            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
-            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
+            r.setTime(millis(), timeClient->getAdjustedTimeMS());
             return r;
         } else if (prevResult.nextAction == CLEANUP) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
@@ -239,8 +240,7 @@ class AlkMeasurer {
             stirForABit(*_buffDosers, r.alkMeasureConf);
 
             r.nextAction = MEASURE_DONE;
-            r.asOfMS = r.primeAndCleanupScratchData.asOfMS = r.alkReading.asOfMS = millis();
-            r.asOfMSAdjusted = timeClient->getAdjustedTimeMS();
+            r.setTime(millis(), timeClient->getAdjustedTimeMS());
             doser::disableDosers();
             return r;
         } else if (prevResult.nextAction == MEASURE_DONE) {
@@ -269,7 +269,7 @@ class AlkMeasureLooper {
     const MeasurementStepResult<NUM_SAMPLES> &getLastStepResult() { return _lastStepResult; }
 
     const MeasurementStepResult<NUM_SAMPLES> &nextStep() {
-        _lastStepResult = _alkMeasurer->measureAlk<NUM_SAMPLES>(_publisher, _timeClient, _lastStepResult);
+        _lastStepResult = _alkMeasurer->measureAlk(_publisher, _timeClient, _lastStepResult);
         return _lastStepResult;
     }
 };

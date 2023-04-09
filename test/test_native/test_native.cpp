@@ -16,7 +16,7 @@ void setUp() {
 int main(int argc, char **argv) {
     UNITY_BEGIN();
     runPHTests();
-    runAlkMeasureTests();
     runNumericTests();
+    runAlkMeasureTests();
     return UNITY_END();
 }

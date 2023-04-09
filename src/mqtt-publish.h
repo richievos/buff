@@ -18,7 +18,7 @@ class MQTTPublisher : public Publisher {
    public:
     MQTTPublisher(std::shared_ptr<MqttClient> mqttClient) : _mqttClient(mqttClient) {}
 
-    void publishMessage(const Topic& topic, const DynamicJsonDocument& doc) {
+    virtual void publishMessage(const Topic& topic, const DynamicJsonDocument& doc) {
         String serializedDoc;
         serializeJson(doc, serializedDoc);
 

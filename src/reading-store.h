@@ -134,7 +134,7 @@ std::unique_ptr<ReadingStore<N>> setupReadingStore() {
     preferences.begin(PREFERENCE_NS, true);
     for (unsigned char i = 0; i < N; i++) {
         PersistedAlkReading reading = readAlkReading(i);
-        if (reading.asOfMSAdjusted != 0) {
+        if (reading.alkReadingDKH != 0) {
             readingStore->addReading(reading);
         }
     }
