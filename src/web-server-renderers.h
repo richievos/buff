@@ -25,10 +25,10 @@ std::string renderTriggerForm(char *temp, size_t temp_size, const unsigned long 
     std::string formTemplate = R"(
       <section>
         <form class="form-inline" action="/execute/measure_alk">
-          <label for="title">Measurement Title</label>
+          <label for="title">Measurement Title:</label>
           <input name="title" id="title" value="%s" />
           <input type="hidden" name="asOf" id="asOf" value="%u"/>
-          <input type="submit" value="Trigger Reading">
+          <input type="submit" value="Start a Measurement">
         </form>
       </section>
     )";
@@ -49,10 +49,12 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
     )";
     for (auto &measurementRef : mostRecentReadings) {
         auto &measurement = measurementRef.get();
-        snprintf(temp, temp_size, alkMeasureTemplate,
-                 renderTime(temp, temp_size, measurement.asOfAdjustedSec).c_str(),
-                 measurement.title.c_str(), measurement.alkReadingDKH);
-        measurementString += temp;
+        if (measurement.alkReadingDKH != 0) {
+          snprintf(temp, temp_size, alkMeasureTemplate,
+                  renderTime(temp, temp_size, measurement.asOfAdjustedSec).c_str(),
+                  measurement.title.c_str(), measurement.alkReadingDKH);
+          measurementString += temp;
+        }
     }
     measurementString += "\n</table>";
     return measurementString;
