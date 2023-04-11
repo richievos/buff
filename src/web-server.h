@@ -83,10 +83,6 @@ class BuffWebServer {
 
         _server.on("/", [&]() { handleRoot(); });
         _server.on("/execute/measure_alk", [&]() { handleTrigger(); });
-        // _server.on("/test.svg", drawGraph);
-        // _server.on("/inline", []() {
-        //     _server.send(200, "text/plain", "this works as well");
-        // });
         _server.onNotFound([&]() { handleNotFound(); });
         _server.begin();
         Serial.println("HTTP server started");

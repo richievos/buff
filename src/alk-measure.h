@@ -208,6 +208,10 @@ class AlkMeasurer {
                     if (hitPHTarget(r.alkReading.phReading.calibratedPH_mavg)) {
                         r.nextAction = CLEANUP;
                         r.nextMeasurementStepAction = STEP_DONE;
+                    } else if (r.alkReading.reagentVolumeML >= r.alkMeasureConf.maxReagentDoseML) {
+                        Serial.println("[WARNING] Hit max reagent dose!");
+                        r.nextAction = CLEANUP;
+                        r.nextMeasurementStepAction = STEP_DONE;
                     } else {
                         r.nextMeasurementStepAction = MeasurementStepAction::DOSE;
                     }

@@ -11,37 +11,39 @@
 namespace buff {
 namespace web_server {
 
-std::string renderTime(char *temp, size_t temp_size, const unsigned long timeInSec) {
+std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeInSec) {
     // millis to time
     const time_t rawtime = (time_t)timeInSec;
     struct tm *dt = gmtime(&rawtime);
 
     // format
-    strftime(temp, temp_size, "%Y-%m-%d %H:%M:%S", dt);
+    strftime(temp, bufferSize, "%Y-%m-%d %H:%M:%S", dt);
     return temp;
 }
 
-std::string renderTriggerForm(char *temp, size_t temp_size, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
+std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
     std::string formTemplate = R"(
-      <section>
-        <form class="form-inline" action="/execute/measure_alk">
-          <input type="hidden" name="asOf" id="asOf" value="%u"/>
+      <section class="row">
+        <div class="col-md-1">
+          <form class="form-inline" action="/execute/measure_alk">
+            <input type="hidden" name="asOf" id="asOf" value="%u"/>
 
-          <div class="form-group">
-            <label for="title">Title</label>
-            <input class="form-control" name="title" id="title" value="%s" />
-          </div>
-          <button class="btn btn-default" type="submit">Start a Measurement</button>
-        </form>
+            <div class="form-group">
+              <label for="title">Title</label>
+              <input class="form-control" type="text" name="title" id="title" value="%s" />
+            </div>
+            <button class="btn btn-default" type="submit">Start a Measurement</button>
+          </form>
+        </div>
       </section>
     )";
 
-    snprintf(temp, temp_size, formTemplate.c_str(), mostRecentTitle.c_str(), renderTimeMS);
+    snprintf(temp, bufferSize, formTemplate.c_str(), mostRecentTitle.c_str(), renderTimeMS);
 
     return temp;
 }
 
-std::string renderMeasurementList(char *temp, size_t temp_size, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
+std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
     std::string measurementString = R"(<table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
@@ -53,8 +55,8 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
     for (auto &measurementRef : mostRecentReadings) {
         auto &measurement = measurementRef.get();
         if (measurement.alkReadingDKH != 0) {
-            snprintf(temp, temp_size, alkMeasureTemplate,
-                     renderTime(temp, temp_size, measurement.asOfAdjustedSec).c_str(),
+            snprintf(temp, bufferSize, alkMeasureTemplate,
+                     renderTime(temp, bufferSize, measurement.asOfAdjustedSec).c_str(),
                      measurement.title.c_str(), measurement.alkReadingDKH);
             measurementString += temp;
         }
@@ -63,21 +65,22 @@ std::string renderMeasurementList(char *temp, size_t temp_size, const std::vecto
     return measurementString;
 }
 
-std::string renderFooter(char *temp, size_t temp_size, const unsigned long renderTimeMS) {
+std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS) {
     int millisSec = millis();
     int millisMin = millisSec / 60;
     int millisHr = millisMin / 60;
 
-    snprintf(temp, temp_size,
-             R"(<footer class="row">Current time: %s, Uptime: %02d:%02d:%02d</footer>)",
-             renderTime(temp, temp_size, renderTimeMS).c_str(),
+    snprintf(temp, bufferSize,
+             R"(<footer class="row"><div class="col-md-1">Current time: %s, Uptime: %02d:%02d:%02d</div></footer>)",
+             renderTime(temp, bufferSize, renderTimeMS).c_str(),
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
 }
 
 void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
-    char temp[1023];
-    memset(temp, 0, 400);
+    const size_t bufferSize = 1023;
+    char temp[bufferSize];
+    memset(temp, 0, bufferSize);
 
     std::string mostRecentTitle = "";
     if (mostRecentReadings.size() > 0) {
@@ -92,20 +95,27 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
     }
 
     out += R"(
-<html>
+<!doctype html>
+<html lang="en">
   <head>
     <title>Buff</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   </head>
   <body>
     <div class="container-fluid">
-      <header class="row"><h1 id="title">Buff</h1></header>
+      <header class="row">
+        <div class="col-md-1">
+          <h1 id="pageTitle">Buff</h1>
+        </div>
+      </header>
     )";
     out += triggeredContent;
 
-    out += renderTriggerForm(temp, 400, renderTimeMS, mostRecentTitle);
-    out += renderMeasurementList(temp, 400, mostRecentReadings);
-    out += renderFooter(temp, 400, renderTimeMS);
+    out += renderTriggerForm(temp, bufferSize, renderTimeMS, mostRecentTitle);
+    out += renderMeasurementList(temp, bufferSize, mostRecentReadings);
+    out += renderFooter(temp, bufferSize, renderTimeMS);
     out += R"(
       </div>
   </body>

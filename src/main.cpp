@@ -35,8 +35,6 @@ alk_measure::AlkMeasurementConfig alkMeasureConf = {
     .primeReagentVolumeML = 0.2,
 
     .measurementTankWaterVolumeML = 200,
-    .initialReagentDoseVolumeML = 2.0,
-    .stirTimes = 1
 
     // float measurementTankWaterVolumeML = 200;
     // float extraPurgeVolumeML = 50;
