@@ -20,6 +20,12 @@ struct AlkReading {
     std::string title;
 };
 
+struct PersistedAlkReading {
+    unsigned long asOfAdjustedSec;
+    float alkReadingDKH;
+    std::string title;
+};
+
 struct AlkMeasurementConfig {
     float primeTankWaterFillVolumeML = 1.0;
     float primeReagentVolumeML = 0.2;

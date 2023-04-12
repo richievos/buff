@@ -6,7 +6,6 @@
 
 #include "Arduino.h"
 #include "alk-measure-common.h"
-#include "reading-store.h"
 
 namespace buff {
 namespace web_server {
@@ -24,27 +23,32 @@ std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeIn
 std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
     std::string formTemplate = R"(
       <section class="row">
-        <div class="col-md-1">
-          <form class="form-inline" action="/execute/measure_alk">
-            <input type="hidden" name="asOf" id="asOf" value="%u"/>
+        <div class="col">
+          <form class="form-inline row" action="/execute/measure_alk">
+              <input type="hidden" name="asOf" id="asOf" value="%u"/>
 
-            <div class="form-group">
-              <label for="title">Title</label>
-              <input class="form-control" type="text" name="title" id="title" value="%s" />
+              <div class="col">
+                <div class="input-group">
+                  <label for="title">Title</label>
+                  <input class="form-control" type="text" name="title" id="title" value="%s" />
+                </div>
+              </div>
+
+              <div class="col">
+                <button class="btn btn-primary" type="submit">Start a Measurement</button>
+              </div>
             </div>
-            <button class="btn btn-default" type="submit">Start a Measurement</button>
           </form>
         </div>
       </section>
     )";
 
-    snprintf(temp, bufferSize, formTemplate.c_str(), mostRecentTitle.c_str(), renderTimeMS);
-
+    snprintf(temp, bufferSize, formTemplate.c_str(), renderTimeMS, mostRecentTitle.c_str());
     return temp;
 }
 
-std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
-    std::string measurementString = R"(<table class="table table-striped">)";
+std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> mostRecentReadings) {
+    std::string measurementString = R"(<section class="row"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
         <td class="asOf">%s</td>
@@ -61,23 +65,23 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
             measurementString += temp;
         }
     }
-    measurementString += "</table>";
+    measurementString += "</div></section></table>";
     return measurementString;
 }
 
-std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS) {
-    int millisSec = millis();
+std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const unsigned long uptime) {
+    int millisSec = uptime;
     int millisMin = millisSec / 60;
     int millisHr = millisMin / 60;
 
     snprintf(temp, bufferSize,
-             R"(<footer class="row"><div class="col-md-1">Current time: %s, Uptime: %02d:%02d:%02d</div></footer>)",
+             R"(<footer class="row"><div class="col">Current time: %s, Uptime: %02d:%02d:%02d</div></footer>)",
              renderTime(temp, bufferSize, renderTimeMS).c_str(),
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
 }
 
-void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const std::vector<std::reference_wrapper<reading_store::PersistedAlkReading>> mostRecentReadings) {
+void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
     const size_t bufferSize = 1023;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);
@@ -99,14 +103,14 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
 <html lang="en">
   <head>
     <title>Buff</title>
-    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />-->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta charset="utf-8">
   </head>
   <body>
     <div class="container-fluid">
       <header class="row">
-        <div class="col-md-1">
+        <div class="col">
           <h1 id="pageTitle">Buff</h1>
         </div>
       </header>
@@ -115,9 +119,10 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
 
     out += renderTriggerForm(temp, bufferSize, renderTimeMS, mostRecentTitle);
     out += renderMeasurementList(temp, bufferSize, mostRecentReadings);
-    out += renderFooter(temp, bufferSize, renderTimeMS);
+    out += renderFooter(temp, bufferSize, renderTimeMS, uptime);
     out += R"(
       </div>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
   </body>
 </html>
     )";

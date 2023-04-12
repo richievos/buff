@@ -288,7 +288,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
 
         debugOutputAlk(doc, payload);
 
-        reading_store::PersistedAlkReading alkReading;
+        alk_measure::PersistedAlkReading alkReading;
         LOAD_FROM_DOC(alkReading, asOfAdjustedSec, unsigned long);
         LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
         alkReading.title = doc["title"].as<std::string>();

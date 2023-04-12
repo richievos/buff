@@ -14,12 +14,6 @@ namespace reading_store {
 
 const char* PREFERENCE_NS = "buff";
 
-struct PersistedAlkReading {
-    unsigned long asOfAdjustedSec;
-    float alkReadingDKH;
-    std::string title;
-};
-
 /************
  * I/O
  ***********/
@@ -39,7 +33,7 @@ const auto KEY_I_OFFSET = static_cast<unsigned char>(1);
 #define INDEX_KEY \
     { 'I', 0 }
 
-void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading) {
+void persistAlkReading(const unsigned char i, const alk_measure::PersistedAlkReading& reading) {
     char dkhKey[] = DKH_KEY(i);
     char asOfKey[] = AS_OF_KEY(i);
     char titleKey[] = TITLE_KEY(i);
@@ -51,8 +45,8 @@ void persistAlkReading(const unsigned char i, const PersistedAlkReading& reading
     }
 }
 
-PersistedAlkReading readAlkReading(const unsigned char i) {
-    PersistedAlkReading reading;
+alk_measure::PersistedAlkReading readAlkReading(const unsigned char i) {
+    alk_measure::PersistedAlkReading reading;
 
     char dkhKey[] = DKH_KEY(i);
     char asOfKey[] = AS_OF_KEY(i);
@@ -81,13 +75,13 @@ unsigned char readIndex() {
 template <size_t N>
 class ReadingStore {
    private:
-    std::vector<PersistedAlkReading> _mostRecentReadings;
+    std::vector<alk_measure::PersistedAlkReading> _mostRecentReadings;
     unsigned char _tipIndex = 0;
 
    public:
     ReadingStore() : _mostRecentReadings(N) {}
 
-    void addReading(const PersistedAlkReading reading, bool persist = false) {
+    void addReading(const alk_measure::PersistedAlkReading reading, bool persist = false) {
         _mostRecentReadings[_tipIndex] = reading;
         _tipIndex++;
         if (_tipIndex >= N) {
@@ -95,14 +89,14 @@ class ReadingStore {
         }
     };
 
-    const std::vector<PersistedAlkReading>& getReadings() {
+    const std::vector<alk_measure::PersistedAlkReading>& getReadings() {
         return _mostRecentReadings;
     }
 
-    const std::vector<std::reference_wrapper<PersistedAlkReading>> getReadingsSortedByAsOf() {
-        std::vector<std::reference_wrapper<PersistedAlkReading>> sorted{_mostRecentReadings.begin(), _mostRecentReadings.end()};
+    const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> getReadingsSortedByAsOf() {
+        std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> sorted{_mostRecentReadings.begin(), _mostRecentReadings.end()};
         std::sort(sorted.begin(), sorted.end(),
-                  [](std::reference_wrapper<PersistedAlkReading>& a, std::reference_wrapper<PersistedAlkReading>& b) { return a.get().asOfAdjustedSec > b.get().asOfAdjustedSec; });
+                  [](std::reference_wrapper<alk_measure::PersistedAlkReading>& a, std::reference_wrapper<alk_measure::PersistedAlkReading>& b) { return a.get().asOfAdjustedSec > b.get().asOfAdjustedSec; });
         return sorted;
     }
 
@@ -133,7 +127,7 @@ std::unique_ptr<ReadingStore<N>> setupReadingStore() {
 
     preferences.begin(PREFERENCE_NS, true);
     for (unsigned char i = 0; i < N; i++) {
-        PersistedAlkReading reading = readAlkReading(i);
+        alk_measure::PersistedAlkReading reading = readAlkReading(i);
         if (reading.alkReadingDKH != 0) {
             readingStore->addReading(reading);
         }

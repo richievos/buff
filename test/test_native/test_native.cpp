@@ -1,6 +1,7 @@
 extern void runPHTests();
 extern void runAlkMeasureTests();
 extern void runNumericTests();
+extern void runWebServerTests();
 
 #include <unity.h>
 
@@ -18,5 +19,6 @@ int main(int argc, char **argv) {
     runPHTests();
     runNumericTests();
     runAlkMeasureTests();
+    runWebServerTests();
     return UNITY_END();
 }
