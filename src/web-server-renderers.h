@@ -24,7 +24,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
     std::string formTemplate = R"(
       <section class="row">
         <form class="form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk">
-          <input type="hidden" name="asOf" id="asOf" value="%u"/>
+          <input type="hidden" name="asOf" id="asOf" value="%lu"/>
 
           <div class="col-12 form-floating">
             <input class="form-control" type="text" name="title" id="title" value="%s" />
@@ -46,7 +46,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
     std::string measurementString = R"(<section class="row mt-3"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
-        <td class="asOf">%s</td>
+        <td class="asOf converted-time" data-epoch-sec="%u">%s</td>
         <td class="title">%s</td>
         <td class="alkReadingDKH">%.1f</td>
       </tr>
@@ -55,6 +55,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
         auto &measurement = measurementRef.get();
         if (measurement.alkReadingDKH != 0) {
             snprintf(temp, bufferSize, alkMeasureTemplate,
+                     measurement.asOfAdjustedSec,
                      renderTime(temp, bufferSize, measurement.asOfAdjustedSec).c_str(),
                      measurement.title.c_str(), measurement.alkReadingDKH);
             measurementString += temp;
@@ -136,7 +137,17 @@ void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, co
     out += renderFooter(temp, bufferSize, renderTimeMS, uptime);
     out += R"(
       </div>
+      <script src="https://code.jquery.com/jquery-3.6.4.slim.min.js" integrity="sha256-a2yjHM4jnF9f54xUQakjZGaqYs/V1CYvWpoqZzC2/Bw=" crossorigin="anonymous"></script>
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js" integrity="sha512-KKbQg5o92MwtJKR9sfm/HkREzfyzNMiKPIQ7i7SZOxwEdiNCm4Svayn2DBq7MKEdrqPJUOSIpy1v6PpFlCQ0YA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+      <script>
+        $('.converted-time').each(function(index, item) {
+          const { DateTime } = luxon;
+          var epochSec = $(item).data("epoch-sec");
+          var timeString = DateTime.fromSeconds(epochSec).toFormat('yyyy-MM-dd HH:mm:ss');
+          $(item).text(timeString)
+        })
+      </script>
   </body>
 </html>
     )";
