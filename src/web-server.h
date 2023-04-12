@@ -27,12 +27,14 @@ class BuffWebServer {
     std::shared_ptr<buff_time::TimeWrapper> _timeClient = nullptr;
     WebServer _server;
 
+    unsigned long _currentElapsedMeasurementTime = 0;
+
    public:
     BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient) : _server(PORT), _timeClient(timeClient) {}
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeSeconds(), millis(), _readingStore->getReadingsSortedByAsOf());
+        renderRoot(bodyText, _currentElapsedMeasurementTime, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeSeconds(), millis(), _readingStore->getReadingsSortedByAsOf());
 
         _server.send(200, "text/html", bodyText.c_str());
     }
@@ -46,7 +48,7 @@ class BuffWebServer {
         } else {
             asOf = atol(_server.arg("asOf").c_str());
         }
-        
+
         if (asOf > 0) {
             auto trigger = std::make_unique<TriggerRequest>();
             trigger->title = _server.arg("title").c_str();
@@ -88,18 +90,19 @@ class BuffWebServer {
         Serial.println("HTTP server started");
     }
 
-    void loopWebServer() {
+    void loopWebServer(const unsigned long time) {
+        _currentElapsedMeasurementTime = time;
         _server.handleClient();
     }
 
     std::unique_ptr<TriggerRequest> retrievePendingFeedRequest() {
-    if (pendingTrigger) {
-        auto feedReq = std::move(pendingTrigger);
-        pendingTrigger = nullptr;
-        return std::move(feedReq);
+        if (pendingTrigger) {
+            auto feedReq = std::move(pendingTrigger);
+            pendingTrigger = nullptr;
+            return std::move(feedReq);
+        }
+        return nullptr;
     }
-    return nullptr;
-}
 };
 
 }  // namespace web_server

@@ -116,6 +116,8 @@ float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &a
 template <size_t NUM_SAMPLES>
 class MeasurementStepResult {
    public:
+    unsigned long measurementStartedAtMS;
+
     unsigned long asOfMS;
     unsigned long asOfAdjustedSec;
     MeasurementAction nextAction;
@@ -154,6 +156,7 @@ class AlkMeasurer {
         r.nextAction = PRIME;
         r.nextMeasurementStepAction = STEP_INITIALIZE;
         r.alkMeasureConf = alkMeasureConf;
+        r.measurementStartedAtMS = asOfMS;
         r.setTime(asOfMS, asOfAdjustedSec);
         r.alkReading.title = title;
         return r;

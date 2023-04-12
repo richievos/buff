@@ -342,7 +342,12 @@ void loopController() {
             autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, alkMeasurer->getDefaultAlkMeasurementConfig(), pendingRequest->title));
         });
     }
-    webServer->loopWebServer();
+    auto currentDuration = 0;
+    if (autoMeasureLooper) {
+        currentDuration = autoMeasureLooper->getLastStepResult().measurementStartedAtMS -
+                          autoMeasureLooper->getLastStepResult().asOfMS;
+    }
+    webServer->loopWebServer(currentDuration);
     loopAlkMeasurement(millis());
 }
 

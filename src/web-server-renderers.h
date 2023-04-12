@@ -24,16 +24,15 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
     std::string formTemplate = R"(
       <section class="row">
         <form class="form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk">
-            <input type="hidden" name="asOf" id="asOf" value="%u"/>
+          <input type="hidden" name="asOf" id="asOf" value="%u"/>
 
-            <div class="col-12 form-floating">
-              <input class="form-control" type="text" name="title" id="title" value="%s" />
-              <label for="title">Title</label>
-            </div>
+          <div class="col-12 form-floating">
+            <input class="form-control" type="text" name="title" id="title" value="%s" />
+            <label for="title">Title</label>
+          </div>
 
-            <div class="col-12">
-              <button class="btn btn-primary" type="submit">Start a Measurement</button>
-            </div>
+          <div class="col-12">
+            <button class="btn btn-primary" type="submit">Start a Measurement</button>
           </div>
         </form>
       </section>
@@ -61,7 +60,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
             measurementString += temp;
         }
     }
-    measurementString += "</div></section></table>";
+    measurementString += "</table></div></section>";
     return measurementString;
 }
 
@@ -77,7 +76,23 @@ std::string renderFooter(char *temp, size_t bufferSize, const unsigned long rend
     return temp;
 }
 
-void renderRoot(std::string &out, const std::string triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
+std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long elapsedMeasurementTime, const std::string &triggered) {
+    std::string alertContent = "";
+    if (triggered == "true") {
+        alertContent = R"(<section class="alert alert-success">Successfully triggered a measurement!</section>)";
+    } else if (triggered == "false") {
+        alertContent = R"(<section class="alert alert-warning">Failed to trigger a measurement!</section>)";
+    }
+
+    if (elapsedMeasurementTime != 0) {
+        const std::string measuringTemplate = R"(<section class="alert alert-primary">Currently measuring (for %us)</section>)";
+        snprintf(temp, bufferSize, measuringTemplate.c_str(), elapsedMeasurementTime);
+        alertContent += temp;
+    }
+    return alertContent;
+}
+
+void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
     const size_t bufferSize = 1023;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);
@@ -89,9 +104,13 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
 
     std::string triggeredContent = "";
     if (triggered == "true") {
-        triggeredContent = R"(<section id="alert alert-primary"><div>Successfully triggered a measurement!</div></section>)";
+        triggeredContent = R"(<section class="alert alert-success">Successfully triggered a measurement!</section>)";
     } else if (triggered == "false") {
-        triggeredContent = R"(<section id="alert alert-warning"><div>Failed to trigger a measurement!</div></section>)";
+        triggeredContent = R"(<section class="alert alert-warning">Failed to trigger a measurement!</section>)";
+    }
+
+    if (elapsedMeasurementTime != 0) {
+        triggeredContent = R"(<section class="alert alert-primary">Currently measuring (for %us)</section>)";
     }
 
     out += R"(
@@ -111,8 +130,7 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
         </div>
       </header>
     )";
-    out += triggeredContent;
-
+    out += renderAlerts(temp, bufferSize, elapsedMeasurementTime, triggered);
     out += renderTriggerForm(temp, bufferSize, renderTimeMS, mostRecentTitle);
     out += renderMeasurementList(temp, bufferSize, mostRecentReadings);
     out += renderFooter(temp, bufferSize, renderTimeMS, uptime);
