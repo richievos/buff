@@ -23,23 +23,19 @@ std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeIn
 std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
     std::string formTemplate = R"(
       <section class="row">
-        <div class="col">
-          <form class="form-inline row" action="/execute/measure_alk">
-              <input type="hidden" name="asOf" id="asOf" value="%u"/>
+        <form class="form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk">
+            <input type="hidden" name="asOf" id="asOf" value="%u"/>
 
-              <div class="col">
-                <div class="input-group">
-                  <label for="title">Title</label>
-                  <input class="form-control" type="text" name="title" id="title" value="%s" />
-                </div>
-              </div>
-
-              <div class="col">
-                <button class="btn btn-primary" type="submit">Start a Measurement</button>
-              </div>
+            <div class="col-12 form-floating">
+              <input class="form-control" type="text" name="title" id="title" value="%s" />
+              <label for="title">Title</label>
             </div>
-          </form>
-        </div>
+
+            <div class="col-12">
+              <button class="btn btn-primary" type="submit">Start a Measurement</button>
+            </div>
+          </div>
+        </form>
       </section>
     )";
 
@@ -48,7 +44,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
 }
 
 std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> mostRecentReadings) {
-    std::string measurementString = R"(<section class="row"><div class="col"><table class="table table-striped">)";
+    std::string measurementString = R"(<section class="row mt-3"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
         <td class="asOf">%s</td>
@@ -93,9 +89,9 @@ void renderRoot(std::string &out, const std::string triggered, const unsigned lo
 
     std::string triggeredContent = "";
     if (triggered == "true") {
-        triggeredContent = R"(<section id="alert success"><div>Successfully triggered a measurement!</div></section>)";
+        triggeredContent = R"(<section id="alert alert-primary"><div>Successfully triggered a measurement!</div></section>)";
     } else if (triggered == "false") {
-        triggeredContent = R"(<section id="alert failure"><div>Failed to trigger a measurement!</div></section>)";
+        triggeredContent = R"(<section id="alert alert-warning"><div>Failed to trigger a measurement!</div></section>)";
     }
 
     out += R"(
