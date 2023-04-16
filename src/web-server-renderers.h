@@ -78,12 +78,23 @@ std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &rea
 }
 
 std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const unsigned long uptime) {
+    const auto footerTemplate = R"(
+        <footer class="row">
+          <div class="col">
+            Current time:
+            <span class="converted-time" data-epoch-sec="%lu">
+              %s
+            </span>, Uptime: %02d:%02d:%02d
+          </div>
+        </footer>)";
+    
     int millisSec = uptime;
     int millisMin = millisSec / 60;
     int millisHr = millisMin / 60;
 
     snprintf(temp, bufferSize,
-             R"(<footer class="row"><div class="col">Current time: %s, Uptime: %02d:%02d:%02d</div></footer>)",
+             footerTemplate,
+             renderTimeMS,
              renderTime(temp, bufferSize, renderTimeMS).c_str(),
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
