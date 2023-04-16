@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "alk-measure-common.h"
+#include "ph-common.h"
+
 #include "numeric.h"
 
 namespace buff {
@@ -77,11 +79,20 @@ class ReadingStore {
    private:
     std::vector<alk_measure::PersistedAlkReading> _mostRecentReadings;
     unsigned char _tipIndex = 0;
+    ph::PHReading _phReading;
 
    public:
     ReadingStore() : _mostRecentReadings(N) {}
 
-    void addReading(const alk_measure::PersistedAlkReading reading, bool persist = false) {
+    void addPHReading(const ph::PHReading &reading) {
+        _phReading = reading;
+    };
+
+    const ph::PHReading &getMostRecentPHReading() {
+        return _phReading;
+    }
+
+    void addAlkReading(const alk_measure::PersistedAlkReading reading, bool persist = false) {
         _mostRecentReadings[_tipIndex] = reading;
         _tipIndex++;
         if (_tipIndex >= N) {
@@ -129,7 +140,7 @@ std::unique_ptr<ReadingStore<N>> setupReadingStore() {
     for (unsigned char i = 0; i < N; i++) {
         alk_measure::PersistedAlkReading reading = readAlkReading(i);
         if (reading.alkReadingDKH != 0) {
-            readingStore->addReading(reading);
+            readingStore->addAlkReading(reading);
         }
     }
 

@@ -18,8 +18,6 @@ struct TriggerRequest {
     unsigned long asOf;
 };
 
-std::unique_ptr<TriggerRequest> pendingTrigger;
-
 template <size_t N, int PORT = 80>
 class BuffWebServer {
    private:
@@ -29,12 +27,14 @@ class BuffWebServer {
 
     unsigned long _currentElapsedMeasurementTime = 0;
 
+    std::unique_ptr<TriggerRequest> _pendingTrigger;
+
    public:
     BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient) : _server(PORT), _timeClient(timeClient) {}
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _currentElapsedMeasurementTime, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeSeconds(), millis(), _readingStore->getReadingsSortedByAsOf());
+        renderRoot(bodyText, _currentElapsedMeasurementTime, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeSeconds(), millis(), _readingStore->getReadingsSortedByAsOf(), _readingStore->getMostRecentPHReading());
 
         _server.send(200, "text/html", bodyText.c_str());
     }
@@ -53,7 +53,7 @@ class BuffWebServer {
             auto trigger = std::make_unique<TriggerRequest>();
             trigger->title = _server.arg("title").c_str();
             trigger->asOf = asOf;
-            pendingTrigger = std::move(trigger);
+            _pendingTrigger = std::move(trigger);
 
             _server.sendHeader("Location", "/?triggered=true", true);
             _server.send(302, "text/plain", "triggered=true");
@@ -90,15 +90,15 @@ class BuffWebServer {
         Serial.println("HTTP server started");
     }
 
-    void loopWebServer(const unsigned long time) {
-        _currentElapsedMeasurementTime = time;
+    void loopWebServer(const unsigned long currentElapsedMeasurementTime) {
+        _currentElapsedMeasurementTime = currentElapsedMeasurementTime;
         _server.handleClient();
     }
 
     std::unique_ptr<TriggerRequest> retrievePendingFeedRequest() {
-        if (pendingTrigger) {
-            auto feedReq = std::move(pendingTrigger);
-            pendingTrigger = nullptr;
+        if (_pendingTrigger) {
+            auto feedReq = std::move(_pendingTrigger);
+            _pendingTrigger = nullptr;
             return std::move(feedReq);
         }
         return nullptr;

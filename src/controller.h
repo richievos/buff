@@ -54,14 +54,22 @@ StaticJsonDocument<200> parseInput(const std::string payload) {
     return doc;
 }
 
-void debugOutputPH(const StaticJsonDocument<200> doc) {
-    const auto asOf = doc["asOf"].as<ulong>();
-    const auto rawPH = doc["rawPH"].as<float>();
-    const auto rawPH_mavg = doc["rawPH_mavg"].as<float>();
-    const auto calibratedPH = doc["calibratedPH"].as<float>();
-    const auto calibratedPH_mvag = doc["calibratedPH_mavg"].as<float>();
+ph::PHReading parsePH(const StaticJsonDocument<200> doc) {
+    ph::PHReading reading = {
+        .asOfMS = doc["asOf"].as<ulong>(),
 
-    monitoring_display::displayPH(rawPH, calibratedPH, rawPH_mavg, calibratedPH_mvag, asOf);
+        .rawPH = doc["rawPH"].as<float>(),
+        .rawPH_mavg = doc["rawPH_mavg"].as<float>(),
+
+        .calibratedPH = doc["calibratedPH"].as<float>(),
+        .calibratedPH_mavg = doc["calibratedPH_mavg"].as<float>()
+    };
+
+    return reading;
+}
+
+void debugOutputPH(const ph::PHReading &reading) {
+    monitoring_display::displayPH(reading.rawPH, reading.calibratedPH, reading.rawPH_mavg, reading.calibratedPH_mavg, reading.asOfMS);
 }
 
 void debugOutputAlk(const StaticJsonDocument<200> doc, const std::string& payload) {
@@ -280,7 +288,9 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
     topicsToProcessor[mqtt::phRead] = [](const std::string& payload) {
         auto doc = parseInput(payload);
 
-        debugOutputPH(doc);
+        ph::PHReading reading = parsePH(doc);
+        debugOutputPH(reading);
+        readingStore->addPHReading(reading);
     };
 
     topicsToProcessor[mqtt::alkRead] = [](const std::string& payload) {
@@ -292,7 +302,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         LOAD_FROM_DOC(alkReading, asOfAdjustedSec, unsigned long);
         LOAD_FROM_DOC(alkReading, alkReadingDKH, float);
         alkReading.title = doc["title"].as<std::string>();
-        readingStore->addReading(alkReading);
+        readingStore->addAlkReading(alkReading);
         persistReadingStore(readingStore);
     };
 
@@ -344,8 +354,8 @@ void loopController() {
     }
     auto currentDuration = 0;
     if (autoMeasureLooper) {
-        currentDuration = autoMeasureLooper->getLastStepResult().measurementStartedAtMS -
-                          autoMeasureLooper->getLastStepResult().asOfMS;
+        currentDuration = autoMeasureLooper->getLastStepResult().asOfMS -
+                          autoMeasureLooper->getLastStepResult().measurementStartedAtMS;
     }
     webServer->loopWebServer(currentDuration);
     loopAlkMeasurement(millis());

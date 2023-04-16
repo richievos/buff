@@ -20,7 +20,8 @@ void testFormDefaultsToLatestTitle() {
     readings.push_back(first);
     readings.push_back(last);
     std::string out;
-    ::buff::web_server::renderRoot(out, 1, "", 1111, 2222, readings);
+    ph::PHReading phReading;
+    ::buff::web_server::renderRoot(out, 1, "", 1111, 2222, readings, phReading);
     TEST_CONTAINS_SUBSTRING(R"(value="first")", out);
 }
 

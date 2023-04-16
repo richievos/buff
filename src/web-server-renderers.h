@@ -46,7 +46,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
     std::string measurementString = R"(<section class="row mt-3"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
-        <td class="asOf converted-time" data-epoch-sec="%u">%s</td>
+        <td class="asOf converted-time" data-epoch-sec="%lu">%s</td>
         <td class="title">%s</td>
         <td class="alkReadingDKH">%.1f</td>
       </tr>
@@ -63,6 +63,18 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
     }
     measurementString += "</table></div></section>";
     return measurementString;
+}
+
+std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &reading) {
+  const auto headerTemplate = R"(<header class="navbar">
+    <div class="navbar-brand">Buff</div>
+    <div class="navbar-text">pH: %.1f</div>
+  </header>)";
+
+  snprintf(temp, bufferSize,
+            headerTemplate,
+            reading.calibratedPH_mavg);
+  return temp;
 }
 
 std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const unsigned long uptime) {
@@ -93,7 +105,7 @@ std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long elap
     return alertContent;
 }
 
-void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
+void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const ph::PHReading &phReading) {
     const size_t bufferSize = 1023;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);
@@ -125,12 +137,8 @@ void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, co
   </head>
   <body>
     <div class="container-fluid">
-      <header class="row">
-        <div class="col">
-          <h1 id="pageTitle">Buff</h1>
-        </div>
-      </header>
     )";
+    out += renderHeader(temp, bufferSize, phReading);
     out += renderAlerts(temp, bufferSize, elapsedMeasurementTime, triggered);
     out += renderTriggerForm(temp, bufferSize, renderTimeMS, mostRecentTitle);
     out += renderMeasurementList(temp, bufferSize, mostRecentReadings);

@@ -26,7 +26,7 @@ class PHReadingStats {
     PHReading _mostRecentReading;
 
    public:
-    PHReading addReading(PHReading reading) {
+    PHReading addAlkReading(PHReading reading) {
         _mostRecentReading = reading;
 
         _rawPHStats.add(round(reading.rawPH * phMetricScaleFactor));
@@ -76,7 +76,7 @@ class PHReader {
     template <size_t NUM_SAMPLES>
     PHReading readNewPHSignalWithStats(PHReadingStats<NUM_SAMPLES> &phReadingStats, unsigned long currentMillis = -1) const {
         auto phReading = readNewPHSignal(currentMillis);
-        return phReadingStats.addReading(phReading);
+        return phReadingStats.addAlkReading(phReading);
     }
 
     template <size_t NUM_SAMPLES>
