@@ -20,7 +20,7 @@ std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeIn
     return temp;
 }
 
-std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const std::string &mostRecentTitle) {
+std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const std::string &mostRecentTitle) {
     std::string formTemplate = R"(
       <section class="row">
         <form class="form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk">
@@ -38,7 +38,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
       </section>
     )";
 
-    snprintf(temp, bufferSize, formTemplate.c_str(), renderTimeMS, mostRecentTitle.c_str());
+    snprintf(temp, bufferSize, formTemplate.c_str(), renderTimeSec, mostRecentTitle.c_str());
     return temp;
 }
 
@@ -66,18 +66,18 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
 }
 
 std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &reading) {
-  const auto headerTemplate = R"(<header class="navbar">
+    const auto headerTemplate = R"(<header class="navbar">
     <div class="navbar-brand">Buff</div>
     <div class="navbar-text">pH: %.1f</div>
   </header>)";
 
-  snprintf(temp, bufferSize,
-            headerTemplate,
-            reading.calibratedPH_mavg);
-  return temp;
+    snprintf(temp, bufferSize,
+             headerTemplate,
+             reading.calibratedPH_mavg);
+    return temp;
 }
 
-std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeMS, const unsigned long uptime) {
+std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const unsigned long uptimeMS) {
     const auto footerTemplate = R"(
         <footer class="row">
           <div class="col">
@@ -87,15 +87,15 @@ std::string renderFooter(char *temp, size_t bufferSize, const unsigned long rend
             </span>, Uptime: %02d:%02d:%02d
           </div>
         </footer>)";
-    
-    int millisSec = uptime;
+
+    int millisSec = uptimeMS / 1000;
     int millisMin = millisSec / 60;
     int millisHr = millisMin / 60;
 
     snprintf(temp, bufferSize,
              footerTemplate,
-             renderTimeMS,
-             renderTime(temp, bufferSize, renderTimeMS).c_str(),
+             renderTimeSec,
+             renderTime(temp, bufferSize, renderTimeSec).c_str(),
              millisHr, millisMin % 60, millisSec % 60);
     return temp;
 }
@@ -116,7 +116,7 @@ std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long elap
     return alertContent;
 }
 
-void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeMS, const unsigned long uptime, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const ph::PHReading &phReading) {
+void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeSec, const unsigned long uptimeMS, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const ph::PHReading &phReading) {
     const size_t bufferSize = 1023;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);
@@ -151,9 +151,9 @@ void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, co
     )";
     out += renderHeader(temp, bufferSize, phReading);
     out += renderAlerts(temp, bufferSize, elapsedMeasurementTime, triggered);
-    out += renderTriggerForm(temp, bufferSize, renderTimeMS, mostRecentTitle);
+    out += renderTriggerForm(temp, bufferSize, renderTimeSec, mostRecentTitle);
     out += renderMeasurementList(temp, bufferSize, mostRecentReadings);
-    out += renderFooter(temp, bufferSize, renderTimeMS, uptime);
+    out += renderFooter(temp, bufferSize, renderTimeSec, uptimeMS);
     out += R"(
       </div>
       <script src="https://code.jquery.com/jquery-3.6.4.slim.min.js" integrity="sha256-a2yjHM4jnF9f54xUQakjZGaqYs/V1CYvWpoqZzC2/Bw=" crossorigin="anonymous"></script>

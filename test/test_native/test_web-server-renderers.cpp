@@ -1,5 +1,6 @@
 #include <unity.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
