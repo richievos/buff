@@ -42,7 +42,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
     return temp;
 }
 
-std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> mostRecentReadings) {
+std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
     std::string measurementString = R"(<section class="row mt-3"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">

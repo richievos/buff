@@ -22,7 +22,7 @@ const char* PREFERENCE_NS = "buff";
 Preferences preferences;
 
 const size_t MAX_TITLE_LEN = 10;
-const size_t READINGS_TO_KEEP = 40;
+const size_t READINGS_TO_KEEP = 80;
 
 // +1 to avoid inserting a null pointer at the beginning of the string
 const auto KEY_I_OFFSET = static_cast<unsigned char>(1);
