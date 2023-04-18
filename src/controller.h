@@ -62,13 +62,12 @@ ph::PHReading parsePH(const StaticJsonDocument<200> doc) {
         .rawPH_mavg = doc["rawPH_mavg"].as<float>(),
 
         .calibratedPH = doc["calibratedPH"].as<float>(),
-        .calibratedPH_mavg = doc["calibratedPH_mavg"].as<float>()
-    };
+        .calibratedPH_mavg = doc["calibratedPH_mavg"].as<float>()};
 
     return reading;
 }
 
-void debugOutputPH(const ph::PHReading &reading) {
+void debugOutputPH(const ph::PHReading& reading) {
     monitoring_display::displayPH(reading.rawPH, reading.calibratedPH, reading.rawPH_mavg, reading.calibratedPH_mavg, reading.asOfMS);
 }
 
@@ -81,7 +80,8 @@ void debugOutputAlk(const StaticJsonDocument<200> doc, const std::string& payloa
     Serial.println();
 }
 
-void debugOutputAction(const alk_measure::MeasurementStepResult<MANUAL_PH_SAMPLE_COUNT>& stepResult) {
+template <size_t N>
+void debugOutputAction(const alk_measure::MeasurementStepResult<N>& stepResult) {
     Serial.print("nextAction=");
     Serial.print(alk_measure::MEASUREMENT_ACTION_TO_NAME.at(stepResult.nextAction).c_str());
     Serial.print("(");
