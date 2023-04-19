@@ -177,7 +177,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
 
         doser::enableDosers();
 
-        auto outputML = doc.containsKey("ml") ? doc["ml"].as<float>() : DEFAULT_TRIGGER_OUTPUT_ML;
+        auto outputML = doc.containsKey("ml") ? doc["ml"].as<float>() : inputs::DEFAULT_TRIGGER_OUTPUT_ML;
         if (doc.containsKey("mlPerFullRotation")) {
             doser::Calibrator calibrator(doc["mlPerFullRotation"].as<float>());
             doser->doseML(outputML, &calibrator);

@@ -49,10 +49,10 @@ alk_measure::AlkMeasurementConfig alkMeasureConf = {
 };
 
 const size_t STANDARD_PH_MAVG_LENGTH = 30;
-auto phReader = std::make_shared<ph::controller::PHReader>(phReadConfig, phCalibrator);
+auto phReader = std::make_shared<ph::controller::PHReader>(inputs::phReadConfig, inputs::phCalibrator);
 ph::controller::PHReadingStats<STANDARD_PH_MAVG_LENGTH> phReadingStats;
 
-auto mqttBroker = std::make_shared<MqttBroker>(MQTT_BROKER_PORT);
+auto mqttBroker = std::make_shared<MqttBroker>(inputs::MQTT_BROKER_PORT);
 auto mqttClient = std::make_shared<MqttClient>(mqttBroker.get());
 
 auto publisher = std::make_shared<mqtt::MQTTPublisher>(mqttClient);
@@ -68,9 +68,9 @@ std::shared_ptr<doser::BuffDosers> buffDosers = nullptr;
 void setup() {
     Serial.begin(115200);
 
-    richiev::connectWifi(hostname, wifiSSID, wifiPassword);
-    richiev::ota::setupOTA(hostname);
-    buffDosers = std::move(doser::setupDosers(doserConfigs, doserSteppers));
+    richiev::connectWifi(inputs::hostname, inputs::wifiSSID, inputs::wifiPassword);
+    richiev::ota::setupOTA(inputs::hostname);
+    buffDosers = std::move(doser::setupDosers(inputs::doserConfigs, inputs::doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
 
