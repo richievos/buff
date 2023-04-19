@@ -11,7 +11,7 @@
 #include "alk-measure.h"
 #include "doser.h"
 #include "mqtt.h"
-// #include "inputs.h"
+#include "inputs.h"
 #include "monitoring-display.h"
 #include "mqtt-common.h"
 #include "reading-store.h"
@@ -186,19 +186,19 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         }
     };
 
-    topicsToProcessor["debug/triggerRotations"] = [&](const std::string& payload) {
-        auto doc = parseInput(payload);
-        auto doser = selectDoser(*buffDosersPtr, doc);
+    // topicsToProcessor["debug/triggerRotations"] = [&](const std::string& payload) {
+    //     auto doc = parseInput(payload);
+    //     auto doser = selectDoser(*buffDosersPtr, doc);
 
-        int degreesRotation = 0;
-        if (doc.containsKey("rotations")) {
-            degreesRotation = round(doc["rotations"].as<float>() * 360);
-        } else if (doc.containsKey("degrees")) {
-            degreesRotation = doc["degrees"].as<int>();
-        }
-        Serial << "Outputting via degreesRotation=" << degreesRotation << endl;
-        doser->stepper->rotate(degreesRotation);
-    };
+    //     int degreesRotation = 0;
+    //     if (doc.containsKey("rotations")) {
+    //         degreesRotation = round(doc["rotations"].as<float>() * 360);
+    //     } else if (doc.containsKey("degrees")) {
+    //         degreesRotation = doc["degrees"].as<int>();
+    //     }
+    //     Serial << "Outputting via degreesRotation=" << degreesRotation << endl;
+    //     doser->stepper->rotate(degreesRotation);
+    // };
 
     topicsToProcessor["execute/measure_alk"] = [&](const std::string& payload) {
         Serial.println("Executing an alk measurement");
@@ -263,27 +263,27 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         doser->calibrator = std::move(calibr);
     };
 
-    topicsToProcessor["config/stepSize"] = [&](const std::string& payload) {
-        auto doc = parseInput(payload);
-        auto doser = selectDoser(*buffDosersPtr, doc);
+    // topicsToProcessor["config/stepSize"] = [&](const std::string& payload) {
+    //     auto doc = parseInput(payload);
+    //     auto doser = selectDoser(*buffDosersPtr, doc);
 
-        auto stepType = doc["stepType"].as<std::string>();
+    //     auto stepType = doc["stepType"].as<std::string>();
 
-        int newMicroStepType = FULL;
-        if (stepType == "full") {
-            newMicroStepType = FULL;
-        } else if (stepType == "quarter") {
-            newMicroStepType = QUARTER;
-        } else if (stepType == "eighth") {
-            newMicroStepType = EIGHTH;
-        } else if (stepType == "sixteenth") {
-            newMicroStepType = SIXTEENTH;
-        }
+    //     int newMicroStepType = FULL;
+    //     if (stepType == "full") {
+    //         newMicroStepType = FULL;
+    //     } else if (stepType == "quarter") {
+    //         newMicroStepType = QUARTER;
+    //     } else if (stepType == "eighth") {
+    //         newMicroStepType = EIGHTH;
+    //     } else if (stepType == "sixteenth") {
+    //         newMicroStepType = SIXTEENTH;
+    //     }
 
-        Serial << "Switching step type from=" << doser->config.microStepType << " to=" << newMicroStepType << "\n";
-        doser->config.microStepType = newMicroStepType;
-        doser->stepper->begin(doser->config.motorRPM, doser->config.microStepType);
-    };
+    //     Serial << "Switching step type from=" << doser->config.microStepType << " to=" << newMicroStepType << "\n";
+    //     doser->config.microStepType = newMicroStepType;
+    //     doser->stepper->begin(doser->config.motorRPM, doser->config.microStepType);
+    // };
 
     topicsToProcessor[mqtt::phRead] = [](const std::string& payload) {
         auto doc = parseInput(payload);

@@ -14,10 +14,15 @@ namespace test_alk_measure {
 using namespace buff;
 using namespace fakeit;
 
+const DoserConfig NONE_CONFIG = {};
+
 class MockDoser : public doser::Doser {
    public:
-    virtual void doseML(const float outputML, doser::Calibrator *aCalibrator = nullptr) {
-    }
+    MockDoser(): doser::Doser(NONE_CONFIG) {}
+
+    virtual void doseML(const float outputML, doser::Calibrator *aCalibrator = nullptr) { }
+
+    virtual void setup() {}
 };
 
 #define mockptrize(mockPtr) &mockPtr->get(), [](...) {}
