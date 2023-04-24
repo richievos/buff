@@ -72,6 +72,7 @@ class BuffWebServer {
                    _timeClient->getAdjustedTimeSeconds(), millis(),
                    readings, _readingStore->getRecentTitles(readings),
                    _readingStore->getMostRecentPHReading());
+        _server.send(200, "text/html", bodyText.c_str());
     }
 
     void handleNotFound() {
