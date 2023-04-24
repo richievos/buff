@@ -10,6 +10,12 @@
 namespace buff {
 namespace web_server {
 
+enum TriggerVal {
+    NA,
+    SUCCESS,
+    FAIL
+};
+
 std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeInSec) {
     // millis to time
     const time_t rawtime = (time_t)timeInSec;
@@ -20,10 +26,27 @@ std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeIn
     return temp;
 }
 
-std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const std::string &mostRecentTitle) {
+std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const std::string &mostRecentTitle, const std::set<std::string> &recentTitles) {
+    std::string titleText;
+    if (recentTitles.size() > 0) {
+      titleText += R"(<span class="intro">Recent:</span>)";
+    }
+    int i = 0;
+    for (auto title : recentTitles) {
+      const char *title_template = R"(<li class="list-inline-item"><a href="#" data-title="%s" class="populate-title">%s</a></li>)";
+      snprintf(temp, bufferSize, title_template, title.c_str(), title.c_str());
+      titleText += temp;
+      i++;
+      if (i > 3) break;
+    }
+
     std::string formTemplate = R"(
       <section class="row">
-        <form class="form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk">
+        <ul class="list-inline">
+          %s
+        </ul>
+
+        <form class="measurement-form form-inline row row-cols-lg-auto align-items-center" action="/execute/measure_alk" method="post">
           <input type="hidden" name="asOf" id="asOf" value="%lu"/>
 
           <div class="col-12 form-floating">
@@ -38,7 +61,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
       </section>
     )";
 
-    snprintf(temp, bufferSize, formTemplate.c_str(), renderTimeSec, mostRecentTitle.c_str());
+    snprintf(temp, bufferSize, formTemplate.c_str(), titleText.c_str(), renderTimeSec, mostRecentTitle.c_str());
     return temp;
 }
 
@@ -51,6 +74,14 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
         <td class="alkReadingDKH">%.1f</td>
       </tr>
     )";
+    // <td class="actions">
+    //   <ul class="list-inline">
+    //     <li class="list-inline-item">
+    //       <button class="btn btn-danger btn-sm rounded-0" type="button" data-toggle="tooltip" data-placement="top" title="Delete"><i class="fa fa-trash"></i></button>
+    //     </li>
+    //   </ul>
+    // </td>
+
     for (auto &measurementRef : mostRecentReadings) {
         auto &measurement = measurementRef.get();
         if (measurement.alkReadingDKH != 0) {
@@ -100,41 +131,30 @@ std::string renderFooter(char *temp, size_t bufferSize, const unsigned long rend
     return temp;
 }
 
-std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long elapsedMeasurementTime, const std::string &triggered) {
+std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered) {
     std::string alertContent = "";
-    if (triggered == "true") {
+    if (triggered == TriggerVal::SUCCESS) {
         alertContent = R"(<section class="alert alert-success">Successfully triggered a measurement!</section>)";
-    } else if (triggered == "false") {
+    } else if (triggered == TriggerVal::FAIL) {
         alertContent = R"(<section class="alert alert-warning">Failed to trigger a measurement!</section>)";
     }
 
-    if (elapsedMeasurementTime != 0) {
+    if (currentElapsedMeasurementTimeMS != 0) {
         const std::string measuringTemplate = R"(<section class="alert alert-primary">Currently measuring (for %us)</section>)";
-        snprintf(temp, bufferSize, measuringTemplate.c_str(), elapsedMeasurementTime);
+        snprintf(temp, bufferSize, measuringTemplate.c_str(), floor(round(currentElapsedMeasurementTimeMS / 1000)));
         alertContent += temp;
     }
     return alertContent;
 }
 
-void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, const std::string &triggered, const unsigned long renderTimeSec, const unsigned long uptimeMS, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const ph::PHReading &phReading) {
-    const size_t bufferSize = 1023;
+void renderRoot(std::string &out, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered, const unsigned long renderTimeSec, const unsigned long uptimeMS, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const std::set<std::string> &recentTitles, const ph::PHReading &phReading) {
+    const size_t bufferSize = 2048;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);
 
     std::string mostRecentTitle = "";
     if (mostRecentReadings.size() > 0) {
         mostRecentTitle = mostRecentReadings.front().get().title;
-    }
-
-    std::string triggeredContent = "";
-    if (triggered == "true") {
-        triggeredContent = R"(<section class="alert alert-success">Successfully triggered a measurement!</section>)";
-    } else if (triggered == "false") {
-        triggeredContent = R"(<section class="alert alert-warning">Failed to trigger a measurement!</section>)";
-    }
-
-    if (elapsedMeasurementTime != 0) {
-        triggeredContent = R"(<section class="alert alert-primary">Currently measuring (for %us)</section>)";
     }
 
     out += R"(
@@ -150,8 +170,8 @@ void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, co
     <div class="container-fluid">
     )";
     out += renderHeader(temp, bufferSize, phReading);
-    out += renderAlerts(temp, bufferSize, elapsedMeasurementTime, triggered);
-    out += renderTriggerForm(temp, bufferSize, renderTimeSec, mostRecentTitle);
+    out += renderAlerts(temp, bufferSize, currentElapsedMeasurementTimeMS, triggered);
+    out += renderTriggerForm(temp, bufferSize, renderTimeSec, mostRecentTitle, recentTitles);
     out += renderMeasurementList(temp, bufferSize, mostRecentReadings);
     out += renderFooter(temp, bufferSize, renderTimeSec, uptimeMS);
     out += R"(
@@ -166,6 +186,10 @@ void renderRoot(std::string &out, const unsigned long elapsedMeasurementTime, co
           var timeString = DateTime.fromSeconds(epochSec).toFormat('yyyy-MM-dd HH:mm:ss');
           $(item).text(timeString)
         })
+        function selectTitle() {
+          $('.measurement-form').find('input[id="title"]').val($(this).data("title"));
+        }
+        $('.populate-title').click(selectTitle);
       </script>
   </body>
 </html>

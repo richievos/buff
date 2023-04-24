@@ -195,8 +195,6 @@ class AlkMeasurer {
             r.setTime(millis(), timeClient->getAdjustedTimeSeconds());
             return r;
         } else if (prevResult.nextAction == MEASURE) {
-            const float sleepDurationBetweenSamples = 1000;
-
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
 
             if (prevResult.nextMeasurementStepAction == MeasurementStepAction::STEP_INITIALIZE) {

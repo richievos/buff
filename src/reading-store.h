@@ -4,12 +4,13 @@
 
 #include <functional>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "alk-measure-common.h"
-#include "ph-common.h"
-
 #include "numeric.h"
+#include "ph-common.h"
+#include "string-manip.h"
 
 namespace buff {
 namespace reading_store {
@@ -84,11 +85,11 @@ class ReadingStore {
    public:
     ReadingStore() : _mostRecentReadings(N) {}
 
-    void addPHReading(const ph::PHReading &reading) {
+    void addPHReading(const ph::PHReading& reading) {
         _phReading = reading;
     };
 
-    const ph::PHReading &getMostRecentPHReading() {
+    const ph::PHReading& getMostRecentPHReading() {
         return _phReading;
     }
 
@@ -111,8 +112,20 @@ class ReadingStore {
         return sorted;
     }
 
-    void
-    updateTipIndex(const unsigned char tipIndex) {
+    // TODO: this method taking these params is ugly
+    const std::set<std::string> getRecentTitles(const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &readings) {
+        std::set<std::string> values;
+        for (auto reading : readings) {
+            auto title = reading.get().title;
+            richiev::strings::trim(title);
+            if (title.size() > 0) {
+                values.insert(title);
+            }
+        }
+        return values;
+    }
+
+    void updateTipIndex(const unsigned char tipIndex) {
         _tipIndex = tipIndex;
     }
 

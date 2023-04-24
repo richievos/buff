@@ -10,10 +10,10 @@
 // Buff Libraries
 #include "alk-measure.h"
 #include "doser.h"
-#include "mqtt.h"
 #include "inputs.h"
 #include "monitoring-display.h"
 #include "mqtt-common.h"
+#include "mqtt.h"
 #include "reading-store.h"
 #include "time-common.h"
 #include "web-server.h"
@@ -352,12 +352,12 @@ void loopController() {
             autoMeasureLooper = std::move(alk_measure::beginAlkMeasureLoop<AUTO_PH_SAMPLE_COUNT>(alkMeasurer, publisher, timeClient, alkMeasurer->getDefaultAlkMeasurementConfig(), pendingRequest->title));
         });
     }
-    auto currentDuration = 0;
+    unsigned long currentDurationMS = 0;
     if (autoMeasureLooper) {
-        currentDuration = autoMeasureLooper->getLastStepResult().asOfMS -
-                          autoMeasureLooper->getLastStepResult().measurementStartedAtMS;
+        currentDurationMS = autoMeasureLooper->getLastStepResult().asOfMS -
+                            autoMeasureLooper->getLastStepResult().measurementStartedAtMS;
     }
-    webServer->loopWebServer(currentDuration);
+    webServer->loopWebServer(currentDurationMS);
     loopAlkMeasurement(millis());
 }
 

@@ -7,6 +7,7 @@
 
 #include "alk-measure-common.h"
 #include "reading-store.h"
+#include "string-manip.h"
 #include "time-common.h"
 #include "web-server-renderers.h"
 
@@ -25,7 +26,7 @@ class BuffWebServer {
     std::shared_ptr<buff_time::TimeWrapper> _timeClient = nullptr;
     WebServer _server;
 
-    unsigned long _currentElapsedMeasurementTime = 0;
+    unsigned long _currentElapsedMeasurementTimeMS = 0;
 
     std::unique_ptr<TriggerRequest> _pendingTrigger;
 
@@ -34,7 +35,11 @@ class BuffWebServer {
 
     void handleRoot() {
         std::string bodyText;
-        renderRoot(bodyText, _currentElapsedMeasurementTime, _server.arg("triggered").c_str(), _timeClient->getAdjustedTimeSeconds(), millis(), _readingStore->getReadingsSortedByAsOf(), _readingStore->getMostRecentPHReading());
+        auto readings = _readingStore->getReadingsSortedByAsOf();
+        renderRoot(bodyText, _currentElapsedMeasurementTimeMS, TriggerVal::NA,
+                   _timeClient->getAdjustedTimeSeconds(), millis(),
+                   readings, _readingStore->getRecentTitles(readings),
+                   _readingStore->getMostRecentPHReading());
 
         _server.send(200, "text/html", bodyText.c_str());
     }
@@ -49,18 +54,24 @@ class BuffWebServer {
             asOf = atol(_server.arg("asOf").c_str());
         }
 
+        TriggerVal triggered = TriggerVal::FAIL;
+
         if (asOf > 0) {
             auto trigger = std::make_unique<TriggerRequest>();
             trigger->title = _server.arg("title").c_str();
+            richiev::strings::trim(trigger->title);
             trigger->asOf = asOf;
             _pendingTrigger = std::move(trigger);
 
-            _server.sendHeader("Location", "/?triggered=true", true);
-            _server.send(302, "text/plain", "triggered=true");
-        } else {
-            _server.sendHeader("Location", "/?triggered=false", true);
-            _server.send(302, "text/plain", "triggered=false");
+            triggered = TriggerVal::SUCCESS;
         }
+
+        std::string bodyText;
+        auto readings = _readingStore->getReadingsSortedByAsOf();
+        renderRoot(bodyText, _currentElapsedMeasurementTimeMS, triggered,
+                   _timeClient->getAdjustedTimeSeconds(), millis(),
+                   readings, _readingStore->getRecentTitles(readings),
+                   _readingStore->getMostRecentPHReading());
     }
 
     void handleNotFound() {
@@ -90,8 +101,8 @@ class BuffWebServer {
         Serial.println("HTTP server started");
     }
 
-    void loopWebServer(const unsigned long currentElapsedMeasurementTime) {
-        _currentElapsedMeasurementTime = currentElapsedMeasurementTime;
+    void loopWebServer(const unsigned long currentElapsedMeasurementTimeMS) {
+        _currentElapsedMeasurementTimeMS = currentElapsedMeasurementTimeMS;
         _server.handleClient();
     }
 
