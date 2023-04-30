@@ -50,10 +50,10 @@ class Doser {
 class BuffDosers {
    private:
     std::map<MeasurementDoserType, std::shared_ptr<Doser>> _doserTypeToDoser;
-    std::map<MeasurementDoserType, std::string> foobar;
+    const short _doserEnablePin;
 
    public:
-    BuffDosers() {}
+    BuffDosers(short doserEnablePin): _doserEnablePin(doserEnablePin) {}
 
     std::shared_ptr<Doser> selectDoser(const MeasurementDoserType doserType) {
         auto it = _doserTypeToDoser.find(doserType);
@@ -71,6 +71,15 @@ class BuffDosers {
     void emplace(const MeasurementDoserType doserType, std::shared_ptr<Doser> doser) {
         _doserTypeToDoser.emplace(doserType, doser);
     }
+
+
+    void disableDosers() {
+        digitalWrite(_doserEnablePin, HIGH);
+    }
+
+    void enableDosers() {
+        digitalWrite(_doserEnablePin, LOW);
+    }
 };
 
 MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
@@ -81,14 +90,6 @@ MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
         // TODO: should raise if a name given that we don't know
         return MeasurementDoserType::FILL;
     }
-}
-
-void disableDosers() {
-    digitalWrite(STEPPER_EN_PIN, HIGH);
-}
-
-void enableDosers() {
-    digitalWrite(STEPPER_EN_PIN, LOW);
 }
 
 template <class DOSER_TYPE, class STEPPER_TYPE>
@@ -103,11 +104,10 @@ void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType doserType, co
 }
 
 template <class DOSER_TYPE, class STEPPER_TYPE>
-std::unique_ptr<buff::doser::BuffDosers> setupDosers(const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> steppers) {
-    disableDosers();
-    pinMode(STEPPER_EN_PIN, OUTPUT);
-
-    auto dosers = std::make_unique<buff::doser::BuffDosers>();
+std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserEnablePin, const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> steppers) {
+    auto dosers = std::make_unique<buff::doser::BuffDosers>(doserEnablePin);
+    pinMode(doserEnablePin, OUTPUT);
+    dosers->disableDosers();
 
     for (auto i : doserConfigs) {
         auto doserType = i.first;

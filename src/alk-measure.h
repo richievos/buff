@@ -168,7 +168,7 @@ class AlkMeasurer {
         if (prevResult.nextAction == PRIME) {
             MeasurementStepResult<NUM_SAMPLES> r = prevResult;
 
-            doser::enableDosers();
+            _buffDosers->enableDosers();
 
             // Get everything primed and cleared out
             primeDosers(_buffDosers, r.alkMeasureConf);
@@ -246,7 +246,7 @@ class AlkMeasurer {
 
             r.nextAction = MEASURE_DONE;
             r.setTime(millis(), timeClient->getAdjustedTimeSeconds());
-            doser::disableDosers();
+            _buffDosers->disableDosers();
             return r;
         } else if (prevResult.nextAction == MEASURE_DONE) {
             return prevResult;

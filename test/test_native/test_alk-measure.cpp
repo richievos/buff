@@ -28,7 +28,7 @@ class MockDoser : public doser::Doser {
 #define mockptrize(mockPtr) &mockPtr->get(), [](...) {}
 
 std::unique_ptr<doser::BuffDosers> buildMockDosers() {
-    auto buffDosers = std::make_unique<doser::BuffDosers>();
+    auto buffDosers = std::make_unique<doser::BuffDosers>(1);
     for (auto i : buff::MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER) {
         auto doser = std::make_shared<MockDoser>();
         buffDosers->emplace(i.second, std::move(doser));

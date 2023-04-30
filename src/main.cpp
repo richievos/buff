@@ -18,7 +18,6 @@
 #include "controller.h"
 #include "doser.h"
 #include "inputs.h"
-#include "monitoring-display.h"
 #include "mqtt-publish.h"
 #include "mqtt.h"
 #include "mywifi.h"
@@ -71,11 +70,9 @@ void setup() {
     richiev::connectWifi(inputs::hostname, inputs::wifiSSID, inputs::wifiPassword);
     richiev::ota::setupOTA(inputs::hostname);
 
-    buffDosers = std::move(doser::setupDosers<doser::BasicStepperDoser>(inputs::doserConfigs, inputs::doserSteppers));
+    buffDosers = std::move(doser::setupDosers<doser::BasicStepperDoser>(inputs::PIN_CONFIG.STEPPER_EN_PIN, inputs::doserConfigs, inputs::doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
-
-    monitoring_display::setupDisplay();
 
     // trigger a NTP refresh
     ntpClient = std::move(ntp::setupNTP());

@@ -11,7 +11,13 @@
 #include "alk-measure.h"
 #include "doser.h"
 #include "inputs.h"
+
+#ifdef BOARD_MKS_DLC32
+#include "mks-ts24-monitoring-display.h"
+#else
 #include "monitoring-display.h"
+#endif
+
 #include "mqtt-common.h"
 #include "mqtt.h"
 #include "reading-store.h"
@@ -163,19 +169,19 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
 
     topicsToProcessor["debug/dosers/disable"] = [&](const std::string& payload) {
         Serial.println("Disabling doser stepper");
-        doser::disableDosers();
+        buffDosersPtr->disableDosers();
     };
 
     topicsToProcessor["debug/dosers/enable"] = [&](const std::string& payload) {
         Serial.println("Enabling doser stepper");
-        doser::enableDosers();
+        buffDosersPtr->enableDosers();
     };
 
     topicsToProcessor["debug/triggerML"] = [&](const std::string& payload) {
         auto doc = parseInput(payload);
         auto doser = selectDoser(*buffDosersPtr, doc);
 
-        doser::enableDosers();
+        buffDosersPtr->enableDosers();
 
         auto outputML = doc.containsKey("ml") ? doc["ml"].as<float>() : inputs::DEFAULT_TRIGGER_OUTPUT_ML;
         if (doc.containsKey("mlPerFullRotation")) {
@@ -327,6 +333,8 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);
+
+    monitoring_display::setupDisplay();
 }
 
 void loopAlkMeasurement(unsigned long loopAsOf) {
