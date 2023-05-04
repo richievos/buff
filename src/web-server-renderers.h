@@ -98,7 +98,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
 
 std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &reading) {
     const auto headerTemplate = R"(<header class="navbar">
-    <div class="navbar-brand">Buff</div>
+    <div><a href="/" class="navbar-brand">Buff</a></div>
     <div class="navbar-text">pH: %.1f</div>
   </header>)";
 
