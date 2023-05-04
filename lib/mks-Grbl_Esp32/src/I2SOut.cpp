@@ -708,7 +708,7 @@ int IRAM_ATTR i2s_out_reset() {
 // Initialize funtion (external function)
 //
 int IRAM_ATTR i2s_out_init(i2s_out_init_t& init_param) {
-    if (i2s_out_initialized) {
+    if (w) {
         // already initialized
         return -1;
     }

@@ -47,22 +47,6 @@ void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkM
     // just blow some liquid out to cause some bubbles
     drainDoser->doseML(-alkMeasureConf.stirAmountML);
 }
-// TODO: this doesn't really work by using the drain. Need to switch to a proper stirrer
-void stirForABitInAndOut(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
-    std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
-
-    // this is kinda hacky, but since I don't currently have a stirrer
-    // just stir it by sucking a bit of water out, then push it back in
-    // and repeat a couple times. This uses the drain doser because I probably
-    // won't have the fill doser line submerged.
-    // The extraDrainageML also causes bubbles in the container, which by
-    // themselves move water around.
-    const float extraDrainageML = 2.0;
-    for (int i = 0; i < alkMeasureConf.stirTimes; i++) {
-        drainDoser->doseML(alkMeasureConf.stirAmountML);
-        drainDoser->doseML(-(alkMeasureConf.stirAmountML + extraDrainageML));
-    }
-}
 
 // Pushes a bit of fluid out of the fill dosers, to make sure when we begin
 // using them for measurement that we don't miss some initial drops. This
@@ -109,6 +93,7 @@ float round2Decimals(const float f) {
 }
 float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &alkMeasureConf) {
     float dkh = (alkReading.reagentVolumeML / alkReading.tankWaterVolumeML * 280.0) * (alkMeasureConf.reagentStrengthMoles / 0.1);
+    dkh *= alkMeasureConf.calibrationMultiplier;
 
     return round2Decimals(dkh);
 }

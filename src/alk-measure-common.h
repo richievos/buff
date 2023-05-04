@@ -48,6 +48,10 @@ struct AlkMeasurementConfig {
     int stirTimes = 1;
 
     float reagentStrengthMoles = 0.1;
+
+    // to adjust the calculated result by a configured value. Is effectively
+    // the same as just adjusting the reagentStrengthMoles value
+    float calibrationMultiplier = 1.0;
 };
 
 }  // namespace alk_measure

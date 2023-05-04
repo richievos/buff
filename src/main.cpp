@@ -5,13 +5,14 @@
 #include <functional>
 #include <memory>
 
-// Arduino libraries
-// #include <PubSubClient.h>
-// #define TINY_MQTT_DEBUG 2
-// #define TINY_MQTT_ASYNC 1
+#include "Arduino.h"
+// #include "Config.h"
+// #include "System.h"
+// #include "Pins.h"
+
+
 #include <WiFi.h>
 
-#include "Arduino.h"
 
 // Buff Libraries
 #include "alk-measure.h"
@@ -29,24 +30,6 @@ namespace buff {
 /*******************************
  * Shared vars
  *******************************/
-alk_measure::AlkMeasurementConfig alkMeasureConf = {
-    .primeTankWaterFillVolumeML = 1.0,
-    .primeReagentVolumeML = 0.2,
-
-    .measurementTankWaterVolumeML = 200,
-
-    // float measurementTankWaterVolumeML = 200;
-    // float extraPurgeVolumeML = 50;
-
-    // float initialReagentDoseVolumeML = 3.0;
-    // float incrementalReagentDoseVolumeML = 0.1;
-
-    // float stirAmountML = 3.0;
-    // int stirTimes = 10;
-
-    // float reagentStrengthMoles = 0.1;
-};
-
 const size_t STANDARD_PH_MAVG_LENGTH = 30;
 auto phReader = std::make_shared<ph::controller::PHReader>(inputs::phReadConfig, inputs::phCalibrator);
 ph::controller::PHReadingStats<STANDARD_PH_MAVG_LENGTH> phReadingStats;
@@ -78,7 +61,7 @@ void setup() {
     ntpClient = std::move(ntp::setupNTP());
     timeClient = std::make_shared<ntp::NTPTimeWrapper>(ntpClient);
 
-    controller::setupController(mqttBroker, mqttClient, buffDosers, phReader, alkMeasureConf, publisher, timeClient);
+    controller::setupController(mqttBroker, mqttClient, buffDosers, phReader, inputs::alkMeasureConf, publisher, timeClient);
 }
 
 void loop() {

@@ -47,7 +47,7 @@ const ArduinoPinConfig ESP32_CONFIG = {
  * Pins: https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE/blob/main/Firmware/Grbl_Esp32/src/Machines/i2s_out_xyz_mks_dlc32.h
  * ESP-32S pinout: https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
  ************************************************/
-struct {
+struct mks {
     short X_STEP_PIN = 12;
     short X_DIRECTION_PIN = 14;
     short Y_STEP_PIN = 26;
