@@ -5,14 +5,10 @@
 #include <functional>
 #include <memory>
 
-#include "Arduino.h"
-// #include "Config.h"
-// #include "System.h"
-// #include "Pins.h"
-
-
+#include <Arduino.h>
 #include <WiFi.h>
 
+#include "mks-skinny/I2SOut.h"
 
 // Buff Libraries
 #include "alk-measure.h"

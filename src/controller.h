@@ -13,6 +13,7 @@
 #include "inputs.h"
 
 #ifdef BOARD_MKS_DLC32
+#include "mks-skinny/mks-bridge.h"
 #include "mks-ts24-monitoring-display.h"
 #else
 #include "monitoring-display.h"
@@ -335,6 +336,10 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
     webServer->setupWebServer(readingStore);
 
     monitoring_display::setupDisplay();
+
+#ifdef BOARD_MKS_DLC32
+    setup_mks();
+#endif
 }
 
 void loopAlkMeasurement(unsigned long loopAsOf) {

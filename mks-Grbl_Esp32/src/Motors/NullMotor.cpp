@@ -19,7 +19,7 @@
     along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "NullMotor.h"
+#include "mks-skinny/Motors/NullMotor.h"
 
 namespace Motors {
    Nullmotor::Nullmotor(uint8_t axis_index) :
