@@ -28,6 +28,13 @@ void IRAM_ATTR digitalWrite(uint8_t pin, uint8_t val) {
         return;
     }
 #ifdef USE_I2S_OUT
+    // Serial.print("digitalWriting I2S pin=");
+    // Serial.print(pin);
+    // Serial.print(", i2sPin=");
+    // Serial.print(pin - I2S_OUT_PIN_BASE);
+    // Serial.print(", val=");
+    // Serial.print(val);
+    // Serial.println();
     i2s_out_write(pin - I2S_OUT_PIN_BASE, val);
 #endif
 }

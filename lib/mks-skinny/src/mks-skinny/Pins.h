@@ -2,6 +2,9 @@
 
 #include <Arduino.h>
 
+// ?? MOVE?
+#define USE_I2S_OUT
+
 const int UNDEFINED_PIN    = 255;  // Can be used to show a pin has no i/O assigned
 const int I2S_OUT_PIN_BASE = 128;
 

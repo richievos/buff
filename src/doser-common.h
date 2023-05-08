@@ -50,10 +50,10 @@ class Doser {
 class BuffDosers {
    private:
     std::map<MeasurementDoserType, std::shared_ptr<Doser>> _doserTypeToDoser;
-    const short _doserEnablePin;
+    const short _doserDisablePin;
 
    public:
-    BuffDosers(short doserEnablePin): _doserEnablePin(doserEnablePin) {}
+    BuffDosers(short doserDisablePin): _doserDisablePin(doserDisablePin) {}
 
     std::shared_ptr<Doser> selectDoser(const MeasurementDoserType doserType) {
         auto it = _doserTypeToDoser.find(doserType);
@@ -74,11 +74,11 @@ class BuffDosers {
 
 
     void disableDosers() {
-        digitalWrite(_doserEnablePin, HIGH);
+        digitalWrite(_doserDisablePin, HIGH);
     }
 
     void enableDosers() {
-        digitalWrite(_doserEnablePin, LOW);
+        digitalWrite(_doserDisablePin, LOW);
     }
 };
 
@@ -104,9 +104,9 @@ void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType doserType, co
 }
 
 template <class DOSER_TYPE, class STEPPER_TYPE>
-std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserEnablePin, const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> steppers) {
-    auto dosers = std::make_unique<buff::doser::BuffDosers>(doserEnablePin);
-    pinMode(doserEnablePin, OUTPUT);
+std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserDisablePin, const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> steppers) {
+    auto dosers = std::make_unique<buff::doser::BuffDosers>(doserDisablePin);
+    pinMode(doserDisablePin, OUTPUT);
     dosers->disableDosers();
 
     for (auto i : doserConfigs) {

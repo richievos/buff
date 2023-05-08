@@ -15,7 +15,7 @@
 
 // ESP32
 struct ArduinoPinConfig {
-    short STEPPER_EN_PIN;
+    short STEPPER_DISABLE_PIN;
 
     short FILL_WATER_DIR_PIN;
     short FILL_WATER_STEP_PIN;
@@ -25,10 +25,13 @@ struct ArduinoPinConfig {
 
     short DRAIN_WATER_DIR_PIN;
     short DRAIN_WATER_STEP_PIN;
+
+    short I2C_SDA;
+    short I2C_SCL;
 };
 
 const ArduinoPinConfig ESP32_CONFIG = {
-    .STEPPER_EN_PIN = 2,
+    .STEPPER_DISABLE_PIN = 2,
 
     .FILL_WATER_DIR_PIN = 32,
     .FILL_WATER_STEP_PIN = 33,
@@ -38,6 +41,9 @@ const ArduinoPinConfig ESP32_CONFIG = {
 
     .DRAIN_WATER_DIR_PIN = 16,
     .DRAIN_WATER_STEP_PIN = 17,
+
+    .I2C_SDA = 21,
+    .I2C_SCL = 22,
 };
 
 /************************************************
@@ -47,19 +53,29 @@ const ArduinoPinConfig ESP32_CONFIG = {
  * Pins: https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE/blob/main/Firmware/Grbl_Esp32/src/Machines/i2s_out_xyz_mks_dlc32.h
  * ESP-32S pinout: https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
  ************************************************/
-struct mks {
-    short MKS_X_STEP_PIN = 12;
-    short MKS_X_DIRECTION_PIN = 14;
-    short MKS_Y_STEP_PIN = 26;
-    short MKS_Y_DIRECTION_PIN = 15;
-    short MKS_Z_STEP_PIN = 27;
-    short MKS_Z_DIRECTION_PIN = 33;
-    short MKS_X_LIMIT_PIN = 17;
-    short MKS_Y_LIMIT_PIN = 4;
-    short MKS_Z_LIMIT_PIN = 16;
+#ifdef BOARD_MKS_DLC32
+#include "mks-skinny/I2SOut.h"
+#include "mks-skinny/Pins.h"
 
-    // OK to comment out to use pin for other features
-    short MKS_STEPPERS_DISABLE_PIN = 13;
+// from Grbl_Esp32/src/Machines/i2s_out_xyz_mks_dlc32.h
+struct mks {
+    short MKS_X_DISABLE_PIN = I2SO(0);
+    short MKS_X_DIRECTION_PIN = I2SO(2);
+    short MKS_X_STEP_PIN = I2SO(1);
+
+    short MKS_Y_DISABLE_PIN = I2SO(0);
+    short MKS_Y_DIRECTION_PIN = I2SO(6);
+    short MKS_Y_STEP_PIN = I2SO(5);
+
+    short MKS_Z_DISABLE_PIN = I2SO(0);
+    short MKS_Z_DIRECTION_PIN = I2SO(4);
+    short MKS_Z_STEP_PIN = I2SO(3);
+
+    short MKS_X_LIMIT_PIN = GPIO_NUM_36;
+    short MKS_Y_LIMIT_PIN = GPIO_NUM_35;
+    short MKS_Z_LIMIT_PIN = GPIO_NUM_34;
+
+    short MKS_STEPPERS_DISABLE_PIN = I2SO(0);
 
     // short SPINDLE_TYPE = SpindleType::PWM;
     short MKS_SPINDLE_OUTPUT_PIN = 2;   // labeled SpinPWM
@@ -68,10 +84,13 @@ struct mks {
     short MKS_COOLANT_MIST_PIN = 21;   // labeled Mist
     short MKS_COOLANT_FLOOD_PIN = 25;  // labeled Flood
     short MKS_PROBE_PIN = 32;          // labeled Probe
+
+    short MKS_IIC_SCL_PIN = GPIO_NUM_4;
+    short MKS_IIC_SDA_PIN = GPIO_NUM_0;
 } MKS_PINS;
 
 const ArduinoPinConfig MKS_DLC32_CONFIG = {
-    .STEPPER_EN_PIN = MKS_PINS.MKS_STEPPERS_DISABLE_PIN,
+    .STEPPER_DISABLE_PIN = MKS_PINS.MKS_STEPPERS_DISABLE_PIN,
 
     .FILL_WATER_DIR_PIN = MKS_PINS.MKS_X_DIRECTION_PIN,
     .FILL_WATER_STEP_PIN = MKS_PINS.MKS_X_STEP_PIN,
@@ -81,4 +100,8 @@ const ArduinoPinConfig MKS_DLC32_CONFIG = {
 
     .DRAIN_WATER_DIR_PIN = MKS_PINS.MKS_Z_DIRECTION_PIN,
     .DRAIN_WATER_STEP_PIN = MKS_PINS.MKS_Z_STEP_PIN,
+
+    .I2C_SDA = MKS_PINS.MKS_IIC_SDA_PIN,
+    .I2C_SCL = MKS_PINS.MKS_IIC_SCL_PIN,
 };
+#endif

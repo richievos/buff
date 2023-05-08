@@ -1,0 +1,1 @@
+This folder represents a copy of the source from [makerbase-mks/MKS-DLC32-FIRMWARE/tree/main/Firmware/Grbl_Esp32/src](https://github.com/makerbase-mks/MKS-DLC32-FIRMWARE/tree/main/Firmware/Grbl_Esp32/src). It is purely here as a reference and for easy diffing purposes. It is not actually used.

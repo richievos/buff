@@ -13,7 +13,7 @@
 #include "inputs.h"
 
 #ifdef BOARD_MKS_DLC32
-#include "mks-skinny/mks-bridge.h"
+#include "mks-bridge.h"
 #include "mks-ts24-monitoring-display.h"
 #else
 #include "monitoring-display.h"

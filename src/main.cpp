@@ -45,11 +45,12 @@ std::shared_ptr<doser::BuffDosers> buffDosers = nullptr;
  **************************/
 void setup() {
     Serial.begin(115200);
+    Wire.begin(inputs::PIN_CONFIG.I2C_SDA, inputs::PIN_CONFIG.I2C_SCL);
 
     richiev::connectWifi(inputs::hostname, inputs::wifiSSID, inputs::wifiPassword);
     richiev::ota::setupOTA(inputs::hostname);
 
-    buffDosers = std::move(doser::setupDosers<doser::BasicStepperDoser>(inputs::PIN_CONFIG.STEPPER_EN_PIN, inputs::doserConfigs, inputs::doserSteppers));
+    buffDosers = std::move(doser::setupDosers<doser::BasicStepperDoser>(inputs::PIN_CONFIG.STEPPER_DISABLE_PIN, inputs::doserConfigs, inputs::doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
 

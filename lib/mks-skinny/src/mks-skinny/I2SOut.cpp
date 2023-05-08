@@ -51,12 +51,6 @@
 // #include "Serial.h"
 // #include "Report.h"
 
-#include <freertos/FreeRTOS.h>
-#include <driver/periph_ctrl.h>
-#include <rom/lldesc.h>
-#include <soc/i2s_struct.h>
-#include <freertos/queue.h>
-
 // #include <esp_types.h>
 #ifdef __cplusplus
 #include <atomic>
@@ -69,8 +63,24 @@ using namespace std;
 #include "mks-skinny/Pins.h"
 #include "mks-skinny/I2SOut.h"
 
+// ?? Disabling to simplify usage of this code
 // Always enable I2S streaming logic
-#define USE_I2S_OUT_STREAM_IMPL
+// #define USE_I2S_OUT_STREAM_IMPL
+
+//??
+// from mks-Grbl_Esp32/src/Machines/i2s_out_xyz_mks_dlc32.h
+#define I2S_OUT_BCK                 GPIO_NUM_16
+#define I2S_OUT_WS                  GPIO_NUM_17
+#define I2S_OUT_DATA                GPIO_NUM_21
+
+#include <driver/periph_ctrl.h>
+#include <soc/i2s_struct.h>
+
+#ifdef USE_I2S_OUT_STREAM_IMPL
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+
+#include <rom/lldesc.h>
 
 //
 // Configrations for DMA connected I2S
@@ -92,7 +102,7 @@ const int I2S_SAMPLE_SIZE   = 4;                                    /* 4 bytes, 
 const int DMA_SAMPLE_COUNT  = I2S_OUT_DMABUF_LEN / I2S_SAMPLE_SIZE; /* number of samples per buffer */
 const int SAMPLE_SAFE_COUNT = (20 / I2S_OUT_USEC_PER_PULSE);        /* prevent buffer overrun (GRBL's $0 should be less than or equal 20) */
 
-#ifdef USE_I2S_OUT_STREAM_IMPL
+
 typedef struct {
     uint32_t**   buffers;
     uint32_t*    current;

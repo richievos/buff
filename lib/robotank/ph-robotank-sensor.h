@@ -7,7 +7,6 @@
  * RoboTank PH Sensor Integration
  *******************************/
 void setupPH_RoboTankPHBoard() {
-    ::Wire.begin();
     ::Wire.setClock(10000);  // set I2C bus to 10 KHz - this is important!
 }
 
