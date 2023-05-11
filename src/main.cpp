@@ -50,7 +50,7 @@ void setup() {
     richiev::connectWifi(inputs::hostname, inputs::wifiSSID, inputs::wifiPassword);
     richiev::ota::setupOTA(inputs::hostname);
 
-    buffDosers = std::move(doser::setupDosers<doser::BasicStepperDoser>(inputs::PIN_CONFIG.STEPPER_DISABLE_PIN, inputs::doserConfigs, inputs::doserSteppers));
+    buffDosers = std::move(doser::setupDosers(inputs::PIN_CONFIG.STEPPER_DISABLE_PIN, inputs::doserInstances, inputs::doserSteppers));
     // TODO: make this configurable
     setupPH_RoboTankPHBoard();
 

@@ -53,7 +53,7 @@ class BuffDosers {
     const short _doserDisablePin;
 
    public:
-    BuffDosers(short doserDisablePin): _doserDisablePin(doserDisablePin) {}
+    BuffDosers(short doserDisablePin) : _doserDisablePin(doserDisablePin) {}
 
     std::shared_ptr<Doser> selectDoser(const MeasurementDoserType doserType) {
         auto it = _doserTypeToDoser.find(doserType);
@@ -71,7 +71,6 @@ class BuffDosers {
     void emplace(const MeasurementDoserType doserType, std::shared_ptr<Doser> doser) {
         _doserTypeToDoser.emplace(doserType, doser);
     }
-
 
     void disableDosers() {
         digitalWrite(_doserDisablePin, HIGH);
@@ -92,27 +91,27 @@ MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
     }
 }
 
-template <class DOSER_TYPE, class STEPPER_TYPE>
-void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType doserType, const DoserConfig& doserConfig, std::shared_ptr<STEPPER_TYPE> stepper) {
-    auto doser = std::make_unique<DOSER_TYPE>(doserConfig);
-    doser->stepper = std::move(stepper);
-    doser->calibrator = std::move(std::make_unique<Calibrator>(doserConfig.mlPerFullRotation));
+template <class STEPPER_TYPE>
+void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType &doserType, std::shared_ptr<Doser> doser, std::shared_ptr<STEPPER_TYPE> stepper) {
+    doser->calibrator = std::move(std::make_unique<Calibrator>(doser->config.mlPerFullRotation));
     doser->setup();
 
     // TODO: if this was a UART based stepper, we could explicitly set the microStepType
     buffDosers.emplace(doserType, std::move(doser));
 }
 
-template <class DOSER_TYPE, class STEPPER_TYPE>
-std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserDisablePin, const std::map<MeasurementDoserType, DoserConfig> doserConfigs, const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> steppers) {
+template <class STEPPER_TYPE>
+std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserDisablePin,
+                                                             const std::map<MeasurementDoserType, std::shared_ptr<Doser>> &doserInstances,
+                                                             const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> &steppers) {
     auto dosers = std::make_unique<buff::doser::BuffDosers>(doserDisablePin);
     pinMode(doserDisablePin, OUTPUT);
     dosers->disableDosers();
 
-    for (auto i : doserConfigs) {
+    for (auto i : doserInstances) {
         auto doserType = i.first;
-        auto doserConfig = i.second;
-        setupDoser<DOSER_TYPE, STEPPER_TYPE>(*dosers, doserType, doserConfig, std::move(steppers.at(doserType)));
+        auto doserInstance = i.second;
+        setupDoser<STEPPER_TYPE>(*dosers, doserType, doserInstance, std::move(steppers.at(doserType)));
     }
 
     return std::move(dosers);

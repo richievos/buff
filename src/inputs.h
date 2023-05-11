@@ -90,12 +90,6 @@ const auto PIN_CONFIG = ESP32_CONFIG;
 const auto PIN_CONFIG = MKS_DLC32_CONFIG;
 #endif
 
-const std::map<MeasurementDoserType, std::shared_ptr<A4988>> doserSteppers = {
-    {MeasurementDoserType::FILL, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.FILL_WATER_DIR_PIN, PIN_CONFIG.FILL_WATER_STEP_PIN)},
-    {MeasurementDoserType::REAGENT, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.REAGENT_DIR_PIN, PIN_CONFIG.REAGENT_STEP_PIN)},
-    {MeasurementDoserType::DRAIN, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.DRAIN_WATER_DIR_PIN, PIN_CONFIG.DRAIN_WATER_STEP_PIN)},
-};
-
 // KPHM
 // pre-may-3
 // const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.289, .motorRPM = 200, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
@@ -118,11 +112,32 @@ const std::map<MeasurementDoserType, DoserConfig> doserConfigs = {
     {MeasurementDoserType::DRAIN, drainDoserConfig},
 };
 
-// std::map<MeasurementDoserType, std::shared_ptr<doser::Doser>> doserInstances = {
-//     {MeasurementDoserType::FILL, std::make_shared<doser::BasicStepperDoser>(fillDoserConfig)},
-//     {MeasurementDoserType::REAGENT, std::make_shared<doser::BasicStepperDoser>(reagentDoserConfig)},
-//     {MeasurementDoserType::DRAIN, std::make_shared<doser::BasicStepperDoser>(drainDoserConfig)},
-// };
+#ifdef ACCEL_STEPPER_DRIVER
+const std::map<MeasurementDoserType, std::shared_ptr<AccelStepper>> doserSteppers = {
+    {MeasurementDoserType::FILL, std::make_shared<AccelStepper>(AccelStepper::DRIVER, PIN_CONFIG.FILL_WATER_STEP_PIN, PIN_CONFIG.FILL_WATER_DIR_PIN)},
+    {MeasurementDoserType::REAGENT, std::make_shared<AccelStepper>(AccelStepper::DRIVER, PIN_CONFIG.REAGENT_STEP_PIN, PIN_CONFIG.REAGENT_DIR_PIN)},
+    {MeasurementDoserType::DRAIN, std::make_shared<AccelStepper>(AccelStepper::DRIVER, PIN_CONFIG.DRAIN_WATER_STEP_PIN, PIN_CONFIG.DRAIN_WATER_DIR_PIN)},
+};
+
+std::map<MeasurementDoserType, std::shared_ptr<doser::Doser>> doserInstances = {
+    {MeasurementDoserType::FILL, std::make_shared<doser::AccelStepperDoser>(fillDoserConfig, doserSteppers.at(MeasurementDoserType::FILL))},
+    {MeasurementDoserType::REAGENT, std::make_shared<doser::AccelStepperDoser>(reagentDoserConfig, doserSteppers.at(MeasurementDoserType::REAGENT))},
+    {MeasurementDoserType::DRAIN, std::make_shared<doser::AccelStepperDoser>(drainDoserConfig, doserSteppers.at(MeasurementDoserType::DRAIN))},
+};
+
+#else
+const std::map<MeasurementDoserType, std::shared_ptr<A4988>> doserSteppers = {
+    {MeasurementDoserType::FILL, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.FILL_WATER_DIR_PIN, PIN_CONFIG.FILL_WATER_STEP_PIN)},
+    {MeasurementDoserType::REAGENT, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.REAGENT_DIR_PIN, PIN_CONFIG.REAGENT_STEP_PIN)},
+    {MeasurementDoserType::DRAIN, std::make_shared<A4988>(stepperConfig.fullStepsForFullRotation, PIN_CONFIG.DRAIN_WATER_DIR_PIN, PIN_CONFIG.DRAIN_WATER_STEP_PIN)},
+};
+
+std::map<MeasurementDoserType, std::shared_ptr<doser::Doser>> doserInstances = {
+    {MeasurementDoserType::FILL, std::make_shared<doser::BasicStepperDoser>(fillDoserConfig, doserSteppers.at(MeasurementDoserType::FILL))},
+    {MeasurementDoserType::REAGENT, std::make_shared<doser::BasicStepperDoser>(reagentDoserConfig, doserSteppers.at(MeasurementDoserType::REAGENT))},
+    {MeasurementDoserType::DRAIN, std::make_shared<doser::BasicStepperDoser>(drainDoserConfig, doserSteppers.at(MeasurementDoserType::DRAIN))},
+};
+#endif
 
 alk_measure::AlkMeasurementConfig alkMeasureConf = {
     .primeTankWaterFillVolumeML = 1.0,

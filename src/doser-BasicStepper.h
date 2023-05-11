@@ -15,7 +15,7 @@ namespace doser {
 
 class BasicStepperDoser : public Doser {
    public:
-    BasicStepperDoser(DoserConfig doserConfig) : Doser(doserConfig) {}
+    BasicStepperDoser(DoserConfig doserConfig, std::shared_ptr<A4988> s) : Doser(doserConfig), stepper(s) {}
 
     std::shared_ptr<A4988> stepper;
 

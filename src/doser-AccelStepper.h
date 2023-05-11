@@ -15,7 +15,7 @@ namespace doser {
 
 class AccelStepperDoser : public Doser {
    public:
-    AccelStepperDoser(DoserConfig doserConfig) : Doser(doserConfig) {}
+    AccelStepperDoser(DoserConfig doserConfig, std::shared_ptr<AccelStepper> s) : Doser(doserConfig), stepper(s) {}
 
     std::shared_ptr<AccelStepper> stepper;
 
@@ -41,7 +41,11 @@ class AccelStepperDoser : public Doser {
     }
 
     virtual void setup() {
-        stepper->setMaxSpeed(config.motorRPM * config.microStepType);
+        auto maxSpeed = config.motorRPM * config.microStepType;
+        Serial.print("Setting max speed, steps=");
+        Serial.println(maxSpeed);
+        stepper->setMaxSpeed(maxSpeed);
+        stepper->setAcceleration(maxSpeed);
     }
 };
 
