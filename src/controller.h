@@ -193,19 +193,46 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         }
     };
 
-    // topicsToProcessor["debug/triggerRotations"] = [&](const std::string& payload) {
-    //     auto doc = parseInput(payload);
-    //     auto doser = selectDoser(*buffDosersPtr, doc);
+    topicsToProcessor["debug/triggerSteps"] = [&](const std::string& payload) {
+        auto doc = parseInput(payload);
+        auto doser = selectDoser(*buffDosersPtr, doc);
 
-    //     int degreesRotation = 0;
-    //     if (doc.containsKey("rotations")) {
-    //         degreesRotation = round(doc["rotations"].as<float>() * 360);
-    //     } else if (doc.containsKey("degrees")) {
-    //         degreesRotation = doc["degrees"].as<int>();
-    //     }
-    //     Serial << "Outputting via degreesRotation=" << degreesRotation << endl;
-    //     doser->stepper->rotate(degreesRotation);
-    // };
+        buffDosersPtr->enableDosers();
+
+        auto steps = doc.containsKey("steps") ? doc["steps"].as<int>() : 200;
+        doser->debugRotateSteps(steps);
+    };
+
+    topicsToProcessor["debug/stirrer/disable"] = [&](const std::string& payload) {
+        analogWrite(inputs::PIN_CONFIG.STIRRER_PIN, 0);
+    };
+
+    topicsToProcessor["debug/stirrer/enable"] = [&](const std::string& payload) {
+        auto doc = parseInput(payload);
+        int value = inputs::PIN_CONFIG.STIRRER_PWM_VALUE;
+        if (doc.containsKey("value")) {
+            value = doc["value"].as<int>();
+        }
+
+        analogWrite(inputs::PIN_CONFIG.STIRRER_PIN, value);
+    };
+
+    topicsToProcessor["debug/triggerRotations"] = [&](const std::string& payload) {
+        auto doc = parseInput(payload);
+        auto doser = selectDoser(*buffDosersPtr, doc);
+
+        int degreesRotation = 0;
+        if (doc.containsKey("rotations")) {
+            degreesRotation = round(doc["rotations"].as<float>() * 360);
+        } else if (doc.containsKey("degrees")) {
+            degreesRotation = doc["degrees"].as<int>();
+        }
+
+        buffDosersPtr->enableDosers();
+
+        Serial << "Outputting via degreesRotation=" << degreesRotation << endl;
+        doser->debugRotateDegrees(degreesRotation);
+    };
 
     topicsToProcessor["execute/measure_alk"] = [&](const std::string& payload) {
         Serial.println("Executing an alk measurement");

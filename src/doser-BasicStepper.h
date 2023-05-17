@@ -22,23 +22,43 @@ class BasicStepperDoser : public Doser {
     virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
         if (aCalibrator == nullptr) aCalibrator = calibrator.get();
 
-        const int degreesRotation = aCalibrator->degreesForMLOutput(outputML) *
-                                    config.clockwiseDirectionMultiplier;
-
-        Serial.print("Outputting mlToOutput=");
+        const double partialRotation = aCalibrator->partialRotationsForMLOutput(outputML);
+        const long steps = partialRotationToSteps(partialRotation);
+        Serial.print("[AS] Outputting mlToOutput=");
         Serial.print(outputML);
         Serial.print("ml,");
-        Serial.print(" via degreesRotation=");
-        Serial.print(degreesRotation);
+        Serial.print(" via partialRotation=");
+        Serial.print(partialRotation);
+        Serial.print(" via steps=");
+        Serial.print(steps);
         Serial.print(" with mlPerFullRotation=");
         Serial.print(aCalibrator->getMlPerFullRotation());
-        Serial.print("\n");
+        Serial.println();
 
-        stepper->rotate(degreesRotation);
+        stepper->move(steps);
     }
 
     virtual void setup() {
         stepper->begin(config.motorRPM, config.microStepType);
+    }
+
+    virtual void debugRotateDegrees(const int degreesRotation) {
+        const long steps = degreesToFullSteps(degreesRotation);
+        Serial.print("[BS] Outputting via degreesRotation=");
+        Serial.print(degreesRotation);
+        Serial.print(" via steps=");
+        Serial.print(steps);
+        Serial.println();
+
+        stepper->move(steps);
+    }
+
+    virtual void debugRotateSteps(const long steps) {
+        Serial.print("[BS] Outputting via steps=");
+        Serial.print(steps);
+        Serial.println();
+
+        stepper->move(steps);
     }
 };
 

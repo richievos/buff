@@ -34,7 +34,28 @@ void setupDisplay(void) {
     digitalWrite(LCD_EN, LOW);
 
     tft.init();
-    tft.setRotation(7);
+    /*
+        Visualization of the TS24
+          Makerbase
+        A            B
+         ------------
+        |            |
+        |            |
+        |            |
+        |            |
+        |            |
+         ------------
+        C            D
+    */
+    // tft.setRotation(0);  // right-to-left, (0,0) = B
+    // tft.setRotation(1);  // right-to-left, (0,0) = B
+    // tft.setRotation(2);  // right-to-left, (0,0) = C
+    // tft.setRotation(3);  // right-to-left, (0,0) = D
+    // tft.setRotation(4);  // right-to-left, (0,0) = D
+    // tft.setRotation(5);  // left-to-left, (0,0) = B
+    tft.setRotation(6);     // left-to-right, (0,0) = A
+    // tft.setRotation(7);  // left-to-right, (0,0) = C
+
     tft.fillScreen(FILL_COLOR);
 
 #ifdef USE_MONITORING_DISPLAY_BUFFER

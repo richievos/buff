@@ -22,30 +22,52 @@ class AccelStepperDoser : public Doser {
     virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
         if (aCalibrator == nullptr) aCalibrator = calibrator.get();
 
-        const long degreesRotation = aCalibrator->degreesForMLOutput(outputML) *
-                                     config.clockwiseDirectionMultiplier;
-        const long steps = round(config.microStepType * (degreesRotation / config.degreesPerStep));
-        Serial.print("Outputting mlToOutput=");
+        const double partialRotation = aCalibrator->partialRotationsForMLOutput(outputML);
+        const long steps = partialRotationToSteps(partialRotation);
+        Serial.print("[AS] Outputting mlToOutput=");
         Serial.print(outputML);
         Serial.print("ml,");
-        Serial.print(" via degreesRotation=");
-        Serial.print(degreesRotation);
+        Serial.print(" via partialRotation=");
+        Serial.print(partialRotation);
         Serial.print(" via steps=");
         Serial.print(steps);
         Serial.print(" with mlPerFullRotation=");
         Serial.print(aCalibrator->getMlPerFullRotation());
-        Serial.print("\n");
+        Serial.println();
 
         stepper->move(steps);
         stepper->runToPosition();
     }
 
     virtual void setup() {
-        auto maxSpeed = config.motorRPM * config.microStepType;
-        Serial.print("Setting max speed, steps=");
+        const auto rps = config.motorRPM / 60.0;
+        const long stepsPerRevolution = partialRotationToSteps(1.0);
+        const auto maxSpeed = rps * stepsPerRevolution;
+        Serial.print("[AS] Setting max speed, steps=");
         Serial.println(maxSpeed);
         stepper->setMaxSpeed(maxSpeed);
         stepper->setAcceleration(maxSpeed);
+    }
+
+    virtual void debugRotateDegrees(const int degreesRotation) {
+        const long steps = degreesToFullSteps(degreesRotation);
+        Serial.print("[AS] Outputting via degreesRotation=");
+        Serial.print(degreesRotation);
+        Serial.print(" via steps=");
+        Serial.print(steps);
+        Serial.println();
+
+        stepper->move(steps);
+        stepper->runToPosition();
+    }
+
+    virtual void debugRotateSteps(const long steps) {
+        Serial.print("[AS] Outputting via steps=");
+        Serial.print(steps);
+        Serial.println();
+
+        stepper->move(steps);
+        stepper->runToPosition();
     }
 };
 

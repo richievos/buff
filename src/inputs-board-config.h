@@ -3,17 +3,8 @@
 /*******************************
  * Board Config
  *******************************/
-// Arduino Board
-// enum ArduinoPinConfig {
-//   DIR_PIN = 6,
-//   STEP_PIN = 7,
+const short UNSET_VALUE = -1;
 
-//   MS1_PIN = 10,
-//   MS2_PIN = 11,
-//   MS3_PIN = 12,
-// };
-
-// ESP32
 struct ArduinoPinConfig {
     short STEPPER_DISABLE_PIN;
 
@@ -28,6 +19,9 @@ struct ArduinoPinConfig {
 
     short I2C_SDA;
     short I2C_SCL;
+
+    short STIRRER_PIN = UNSET_VALUE;
+    short STIRRER_PWM_VALUE = UNSET_VALUE;
 };
 
 const ArduinoPinConfig ESP32_CONFIG = {
@@ -77,16 +71,10 @@ struct mks {
 
     short MKS_STEPPERS_DISABLE_PIN = I2SO(0);
 
-    // short SPINDLE_TYPE = SpindleType::PWM;
-    short MKS_SPINDLE_OUTPUT_PIN = 2;   // labeled SpinPWM
-    short MKS_SPINDLE_ENABLE_PIN = 22;  // labeled SpinEnbl
-
-    short MKS_COOLANT_MIST_PIN = 21;   // labeled Mist
-    short MKS_COOLANT_FLOOD_PIN = 25;  // labeled Flood
-    short MKS_PROBE_PIN = 32;          // labeled Probe
-
     short MKS_IIC_SCL_PIN = GPIO_NUM_4;
     short MKS_IIC_SDA_PIN = GPIO_NUM_0;
+
+    short MKS_SPINDLE_OUTPUT_PIN = GPIO_NUM_32;
 } MKS_PINS;
 
 const ArduinoPinConfig MKS_DLC32_CONFIG = {
@@ -103,5 +91,8 @@ const ArduinoPinConfig MKS_DLC32_CONFIG = {
 
     .I2C_SDA = MKS_PINS.MKS_IIC_SDA_PIN,
     .I2C_SCL = MKS_PINS.MKS_IIC_SCL_PIN,
+
+    .STIRRER_PIN = MKS_PINS.MKS_SPINDLE_OUTPUT_PIN,
+    .STIRRER_PWM_VALUE = 50,
 };
 #endif

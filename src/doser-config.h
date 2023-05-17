@@ -16,21 +16,9 @@ enum DriverStepType {
     FULL = 1,
     QUARTER = 4,
     EIGHTH = 8,
-    SIXTEENTH = 16
+    SIXTEENTH = 16,
+    THIRTY_SECOND = 32
 };
-
-/*******************************
- * Steppers
- *******************************/
-struct StepperConfig {
-    int fullStepsForFullRotation;
-    std::string name;
-    float mlPer10Rotations;
-};
-
-const StepperConfig generic_1_8degree = {200, "generic_1_8degree", 0.0};
-
-const StepperConfig kphm100STB10 = {200, "kphm100STB10", 2.7};
 
 /*******************************
  * Dosers
@@ -40,12 +28,13 @@ struct DoserConfig {
     int motorRPM;
     int microStepType;
 
-    float degreesPerStep = 1.8;
+    // double degreesPerStep = 1.8;
+    int fullStepsPerRotation = 200;
 
     // used to flip the rotation
     // A4988 = 1
     // TMC2208 = -1
-    int clockwiseDirectionMultiplier;
+    int clockwiseDirectionMultiplier = 1;
 };
 
 

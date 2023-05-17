@@ -23,10 +23,15 @@ class Calibrator {
 
     const int degreesForMLOutput(const float mlOutput) const {
         // want 1.1ml, and each full rotation is 0.2ml, so need 5.5 full rotations
-        const double rotations = mlOutput / _mlPerFullRotation;
+        const double rotations = partialRotationsForMLOutput(mlOutput);
 
         // 5.5 rotations * 360 degrees = 1,980 degrees
         return round(rotations * _fullRotationDegrees);
+    }
+
+    const double partialRotationsForMLOutput(const float mlOutput) const {
+        // want 1.1ml, and each full rotation is 0.2ml, so need 5.5 full rotations
+        return mlOutput / _mlPerFullRotation;
     }
 
     const double getMlPerFullRotation() {
@@ -36,7 +41,7 @@ class Calibrator {
 
 class Doser {
    public:
-    DoserConfig config;
+    const DoserConfig config;
 
     Doser(DoserConfig doserConfig) : config(doserConfig) {}
 
@@ -45,6 +50,19 @@ class Doser {
     virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) = 0;
 
     virtual void setup() = 0;
+
+    virtual void debugRotateDegrees(const int deg) = 0;
+    virtual void debugRotateSteps(const long steps) = 0;
+
+    long partialRotationToSteps(const double partialRotation) {
+        return round(partialRotation * config.fullStepsPerRotation * config.microStepType) * config.clockwiseDirectionMultiplier;
+    }
+
+    long degreesToFullSteps(const double degrees) {
+        const double fullRotation = 360.0;
+        const double partialRotation = (degrees / fullRotation);
+        return partialRotationToSteps(partialRotation);
+    }
 };
 
 class BuffDosers {
