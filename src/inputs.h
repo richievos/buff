@@ -186,7 +186,7 @@ alk_measure::AlkMeasurementConfig alkMeasureConf = {
     // .reagentStrengthMoles = 0.1,
 
     // Adjustment for the manual 0.1 HCL mix
-    .calibrationMultiplier = 0.9652};
+    .calibrationMultiplier = 1.0};
 
 }  // namespace inputs
 }  // namespace buff
