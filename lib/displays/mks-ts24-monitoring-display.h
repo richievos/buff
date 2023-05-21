@@ -29,7 +29,7 @@ static bool displaySetupFully = false;
 
 const uint16_t FILL_COLOR = static_cast<uint16_t>(0xCCCCC);
 
-void setupDisplay(void) {
+void setupDisplay() {
     pinMode(LCD_EN, OUTPUT);
     digitalWrite(LCD_EN, LOW);
 
@@ -89,19 +89,25 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     target.setCursor(0, 0);          // Start at top-left corner
     target.setTextFont(2);
 
-    target.fillScreen(FILL_COLOR);
-    target.print(F("pH: "));
-    target.println(pH, 3);
-    target.print(F("mavg(pH): "));
-    target.println(rawPH_mvag, 3);
+    target.print(F("asOf: "));
+    target.println(asOf);
 
-    target.print(F("calib: "));
+    target.fillScreen(FILL_COLOR);
+    target.print(F("calib ph: "));
     target.println(convertedPH, 3);
     target.print(F("mvag(calib): "));
     target.println(calibratedPH_mvag, 3);
 
-    target.print(F("asOf: "));
-    target.println(asOf);
+    target.println();
+    target.println();
+    target.println();
+    target.println();
+
+
+    target.print(F("raw pH: "));
+    target.println(pH, 3);
+    target.print(F("mavg(raw pH): "));
+    target.println(rawPH_mvag, 3);
 
 #ifdef USE_MONITORING_DISPLAY_BUFFER
     target.pushSprite(0, 0);
