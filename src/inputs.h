@@ -101,10 +101,10 @@ const auto PIN_CONFIG = MKS_DLC32_CONFIG;
 // new doser temp
 // const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.31, .motorRPM = 200, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0};
 // 3=4.055, 1=1.352
-const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.27, .motorRPM = 120,
+const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.272, .motorRPM = 120,
                                      //
                                      .microStepType = SIXTEENTH,
-                                     .fullStepsPerRotation = 277,
+                                     .fullStepsPerRotation = 200,
                                      .clockwiseDirectionMultiplier = -1};
 
 // GOSO
@@ -116,10 +116,10 @@ const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.27, .motorRPM = 120,
 // const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.187, .motorRPM = 30, .microStepType = EIGHTH, .degreesPerStep = 2.0};
 // 1 = 1.7
 const DoserConfig reagentDoserConfig = {
-    .mlPerFullRotation = 0.176, .motorRPM = 60,
+    .mlPerFullRotation = 0.175, .motorRPM = 60,
     //
     .microStepType = SIXTEENTH,
-    .fullStepsPerRotation = 274,
+    .fullStepsPerRotation = 200,
     .clockwiseDirectionMultiplier = 1};
 
 // 1-3 piping
@@ -132,11 +132,11 @@ const DoserConfig reagentDoserConfig = {
 // const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 250, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0};
 
 // const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 60, .microStepType = FULL, .degreesPerStep = 2.0};
-const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 120,
+const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.3, .motorRPM = 180,
                                       //
                                       .microStepType = SIXTEENTH,
-                                      .fullStepsPerRotation = 293,
-                                      .clockwiseDirectionMultiplier = 1};
+                                      .fullStepsPerRotation = 200,
+                                      .clockwiseDirectionMultiplier = -1};
 
 #ifdef ACCEL_STEPPER_DRIVER
 const std::map<MeasurementDoserType, std::shared_ptr<AccelStepper>> doserSteppers = {

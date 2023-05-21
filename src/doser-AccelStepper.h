@@ -47,6 +47,7 @@ class AccelStepperDoser : public Doser {
         Serial.println(maxSpeed);
         stepper->setMaxSpeed(maxSpeed);
         stepper->setAcceleration(maxSpeed);
+        stepper->setMinPulseWidth(80);
     }
 
     virtual void debugRotateDegrees(const int degreesRotation) {
