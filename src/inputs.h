@@ -170,7 +170,8 @@ std::map<MeasurementDoserType, std::shared_ptr<doser::Doser>> doserInstances = {
 
 alk_measure::AlkMeasurementConfig alkMeasureConf = {
     .primeTankWaterFillVolumeML = 1.0,
-    .primeReagentVolumeML = 0.2,
+    .primeReagentReverseVolumeML = -2.6,
+    .primeReagentVolumeML = 2.9,
 
     .measurementTankWaterVolumeML = 200,
 

@@ -146,6 +146,7 @@ void runAfterIdempotenceCheck(const unsigned long asOf, std::function<void()> f)
 alk_measure::AlkMeasurementConfig buildAlkMeasureConfig(const StaticJsonDocument<200>& doc) {
     auto beginAlkMeasureConf = alkMeasurer->getDefaultAlkMeasurementConfig();
     LOAD_FROM_DOC(beginAlkMeasureConf, primeTankWaterFillVolumeML, float);
+    LOAD_FROM_DOC(beginAlkMeasureConf, primeReagentReverseVolumeML, float);
     LOAD_FROM_DOC(beginAlkMeasureConf, primeReagentVolumeML, float);
     LOAD_FROM_DOC(beginAlkMeasureConf, measurementTankWaterVolumeML, float);
     LOAD_FROM_DOC(beginAlkMeasureConf, extraPurgeVolumeML, float);

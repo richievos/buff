@@ -28,7 +28,8 @@ struct PersistedAlkReading {
 
 struct AlkMeasurementConfig {
     float primeTankWaterFillVolumeML = 1.0;
-    float primeReagentVolumeML = 0.2;
+    float primeReagentReverseVolumeML = -2.6;
+    float primeReagentVolumeML = 2.7;
 
     float measurementTankWaterVolumeML = 200;
     float extraPurgeVolumeML = 50;

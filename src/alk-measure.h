@@ -56,6 +56,7 @@ void primeDosers(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasure
     std::shared_ptr<doser::Doser> reagentDoser = buffDosers->selectDoser(MeasurementDoserType::REAGENT);
 
     waterFillDoser->doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
+    reagentDoser->doseML(alkMeasureConf.primeReagentReverseVolumeML);
     reagentDoser->doseML(alkMeasureConf.primeReagentVolumeML);
     waterFillDoser->doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
 }
