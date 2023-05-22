@@ -406,6 +406,8 @@ void loopController() {
     }
     webServer->loopWebServer(currentDurationMS);
     loopAlkMeasurement(millis());
+
+    monitoring_display::loopDisplay();
 }
 
 }  // namespace controller

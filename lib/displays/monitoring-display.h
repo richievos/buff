@@ -54,5 +54,7 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     display.display();
 }
 
+void loopDisplay() { }
+
 }  // namespace monitoring_display
 }  // namespace buff

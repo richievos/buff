@@ -75,18 +75,8 @@
 // #define M5STACK
 
 // For ST7789, ST7735, ILI9163 and GC9A01 ONLY, define the pixel width and height in portrait orientation
-// #define TFT_WIDTH  480 // MKS
-#define TFT_WIDTH  320 // MKS TS24 guess
-// #define TFT_WIDTH  320
-// #define TFT_WIDTH  128
-// #define TFT_WIDTH  240 // ST7789 240 x 240 and 240 x 320
-// #define TFT_HEIGHT 320 // MKS
-#define TFT_HEIGHT 240 // MKS TS24 guess
-// #define TFT_HEIGHT 480
-// #define TFT_HEIGHT 128
-// #define TFT_HEIGHT 240 // ST7789 240 x 240
-// #define TFT_HEIGHT 320 // ST7789 240 x 320
-// #define TFT_HEIGHT 240 // GC9A01 240 x 240
+// #define TFT_WIDTH  TS24_WIDTH
+// #define TFT_HEIGHT TS24_HEIGHT
 
 // For ST7735 ONLY, define the type of display, originally this was based on the
 // colour of the tab on the screen protector film but this is not always true, so try
