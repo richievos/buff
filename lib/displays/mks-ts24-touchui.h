@@ -4,18 +4,17 @@
 #include <SPI.h>
 
 // TODO: move this out
-// #define LCD_SCK GPIO_NUM_18
-// #define LCD_MISO GPIO_NUM_19
-// #define LCD_MOSI GPIO_NUM_23
-// #define LCD_RS GPIO_NUM_33
 #define LCD_EN GPIO_NUM_5
-// #define LCD_RST GPIO_NUM_27
-// #define LCD_CS GPIO_NUM_25
 #define TOUCH_CS GPIO_NUM_26
 #include "TFT_eSPI.h"
-// #define TFT_WIDTH TS24_WIDTH
 #include "lvgl.h"
-// #include "demos/lv_demos.h"
+
+// stdlib
+#include <memory>
+
+// My Libs
+#include "alk-measure-common.h"
+#include "reading-store.h"
 
 namespace buff {
 
@@ -25,7 +24,6 @@ namespace monitoring_display {
 static const uint16_t TS24_WIDTH = 240;
 static const uint16_t TS24_HEIGHT = 320;
 
-
 #define LANDSCAPE_SCREEN
 #ifdef LANDSCAPE_SCREEN
 static const uint16_t SCREEN_WIDTH = TS24_WIDTH;
@@ -34,8 +32,6 @@ static const uint16_t SCREEN_HEIGHT = TS24_HEIGHT;
 static const uint16_t SCREEN_WIDTH = TFT_HEIGHT;
 static const uint16_t SCREEN_HEIGHT = TFT_WIDTH;
 #endif
-
-
 
 auto static tft = TFT_eSPI(SCREEN_WIDTH, TS24_HEIGHT);
 
@@ -84,11 +80,16 @@ void touchReadCB(lv_indev_drv_t* indev_driver, lv_indev_data_t* data) {
 
 void event_handler(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t* obj = lv_event_get_target(e);
 
     if (code == LV_EVENT_CLICKED) {
         Serial.println("Clicked");
     } else if (code == LV_EVENT_VALUE_CHANGED) {
         Serial.println("Toggled");
+
+        // char buf[32];
+        // lv_roller_get_selected_str(obj, buf, sizeof(buf));
+        // LV_LOG_USER("Selected month: %s\n", buf);
     }
 }
 
@@ -145,7 +146,7 @@ void lvSetup() {
     lv_indev_drv_register(&indev_drv);
 }
 
-void createMainPage() {
+void demoMixed() {
     /*Create a container with ROW flex direction*/
     lv_obj_t* cont_row = lv_obj_create(lv_scr_act());
     lv_obj_set_size(cont_row, SCREEN_WIDTH, 75);
@@ -238,15 +239,92 @@ void demoButtons() {
     lv_obj_center(label);
 }
 
-void setupDisplay() {
+lv_obj_t* triggerRoller;
+lv_obj_t* readingsList;
+
+void createMainPage() {
+    /*Create a container with ROW flex direction*/
+    lv_obj_t* triggerRow = lv_list_create(lv_scr_act());
+    lv_obj_set_size(triggerRow, SCREEN_WIDTH, 100);
+    lv_obj_align(triggerRow, LV_ALIGN_TOP_MID, 0, 5);
+    lv_obj_set_flex_flow(triggerRow, LV_FLEX_FLOW_ROW);
+
+    // roller
+    triggerRoller = lv_roller_create(triggerRow);
+    lv_roller_set_visible_row_count(triggerRoller, 3);
+    lv_obj_center(triggerRoller);
+    lv_obj_set_size(triggerRoller, LV_PCT(65), 70);
+    lv_obj_add_event_cb(triggerRoller, event_handler, LV_EVENT_ALL, NULL);
+
+    // trigger button
+    lv_obj_t* triggerBtn = lv_btn_create(triggerRow);
+    lv_obj_set_size(triggerBtn, LV_PCT(30), LV_SIZE_CONTENT);
+    lv_obj_add_event_cb(triggerBtn, event_handler, LV_EVENT_ALL, NULL);
+    lv_obj_align_to(triggerBtn, triggerRoller, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+
+    lv_obj_t* triggerLabel = lv_label_create(triggerBtn);
+    lv_label_set_text(triggerLabel, "Trigger");
+    lv_obj_center(triggerLabel);
+
+    /*Create a container with COLUMN flex direction*/
+    readingsList = lv_list_create(lv_scr_act());
+    lv_obj_set_size(readingsList, 200, 150);
+    lv_obj_align_to(readingsList, triggerRow, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
+    lv_obj_set_flex_flow(readingsList, LV_FLEX_FLOW_COLUMN);
+}
+
+void refreshTriggerButtons(const std::set<std::string>& titles) {
+    std::string concatTitle = "";
+    for (auto title : titles) {
+        if (concatTitle.size() > 0) {
+            concatTitle += "\n";
+        }
+        concatTitle += title;
+    }
+
+    lv_roller_set_options(triggerRoller,
+                          concatTitle.c_str(),
+                          LV_ROLLER_MODE_NORMAL);
+}
+
+void refreshReadingList(const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> alkReadings) {
+    lv_obj_clean(readingsList);
+
+    const size_t bufferSize = 256;
+    char printBuff[bufferSize];
+
+    for (int i = 0; i < std::min(alkReadings.size(), static_cast<size_t>(10)); i++) {
+        auto readingRef = alkReadings[i];
+        auto reading = readingRef.get();
+        /*Add items to the column*/
+        lv_obj_t* obj = lv_btn_create(readingsList);
+        lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
+
+        lv_obj_t* label = lv_label_create(obj);
+        snprintf(printBuff, bufferSize, "%s: %.1f dkh", reading.title.c_str(), reading.alkReadingDKH);
+        lv_label_set_text(label, printBuff);
+        lv_obj_center(label);
+    }
+}
+
+void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
+    auto alkReadings = readingStore->getReadingsSortedByAsOf();
+    // renderRoot(bodyText, _currentElapsedMeasurementTimeMS, TriggerVal::NA,
+    // _timeClient->getAdjustedTimeSeconds(), millis(),
+    // readings, _readingStore->getRecentTitles(readings),
+    const ph::PHReading& reading = readingStore->getMostRecentPHReading();
+
+    refreshTriggerButtons(readingStore->getRecentTitles(alkReadings));
+    refreshReadingList(alkReadings);
+}
+
+void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     enableDisplayHardware();
     tftSetup();
     lvSetup();
 
-
     createMainPage();
-    // demoLabels();
-    // demoButtons();
+    updateDisplay(readingStore);
 
     // Done
     displaySetupFully = true;

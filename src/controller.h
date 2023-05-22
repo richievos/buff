@@ -324,6 +324,8 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         alkReading.title = doc["title"].as<std::string>();
         readingStore->addAlkReading(alkReading);
         persistReadingStore(readingStore);
+
+        monitoring_display::updateDisplay(readingStore);
     };
 
     Serial << "Initialized topic_processor_count=" << topicsToProcessor.size() << endl;
@@ -348,7 +350,7 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);
 
-    monitoring_display::setupDisplay();
+    monitoring_display::setupDisplay(readingStore);
 
 #ifdef BOARD_MKS_DLC32
     setup_mks();
