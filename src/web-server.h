@@ -19,10 +19,9 @@ struct TriggerRequest {
     unsigned long asOf;
 };
 
-template <size_t N, int PORT = 80>
 class BuffWebServer {
    private:
-    std::shared_ptr<reading_store::ReadingStore<N>> _readingStore = nullptr;
+    std::shared_ptr<reading_store::ReadingStore> _readingStore = nullptr;
     std::shared_ptr<buff_time::TimeWrapper> _timeClient = nullptr;
     WebServer _server;
 
@@ -31,7 +30,7 @@ class BuffWebServer {
     std::unique_ptr<TriggerRequest> _pendingTrigger;
 
    public:
-    BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient) : _server(PORT), _timeClient(timeClient) {}
+    BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient, int port=80) : _server(port), _timeClient(timeClient) {}
 
     void handleRoot() {
         std::string bodyText;
@@ -92,7 +91,7 @@ class BuffWebServer {
         _server.send(404, "text/plain", message);
     }
 
-    void setupWebServer(std::shared_ptr<reading_store::ReadingStore<N>> rs) {
+    void setupWebServer(std::shared_ptr<reading_store::ReadingStore> rs) {
         _readingStore = rs;
 
         _server.on("/", [&]() { handleRoot(); });

@@ -75,15 +75,15 @@ unsigned char readIndex() {
 /************
  * ReadingStore
  ***********/
-template <size_t N>
 class ReadingStore {
    private:
     std::vector<alk_measure::PersistedAlkReading> _mostRecentReadings;
     unsigned char _tipIndex = 0;
     ph::PHReading _phReading;
+    const size_t _readingsToKeep;
 
    public:
-    ReadingStore() : _mostRecentReadings(N) {}
+    ReadingStore(size_t readingsToKeep) : _readingsToKeep(readingsToKeep), _mostRecentReadings(readingsToKeep) {}
 
     void addPHReading(const ph::PHReading& reading) {
         _phReading = reading;
@@ -96,7 +96,7 @@ class ReadingStore {
     void addAlkReading(const alk_measure::PersistedAlkReading reading, bool persist = false) {
         _mostRecentReadings[_tipIndex] = reading;
         _tipIndex++;
-        if (_tipIndex >= N) {
+        if (_tipIndex >= _readingsToKeep) {
             _tipIndex = 0;
         }
     };
@@ -132,8 +132,7 @@ class ReadingStore {
     const unsigned char getTipIndex() { return _tipIndex; }
 };
 
-template <size_t N>
-void persistReadingStore(std::shared_ptr<ReadingStore<N>> readingStore) {
+void persistReadingStore(std::shared_ptr<ReadingStore> readingStore) {
     preferences.begin(PREFERENCE_NS, false);
     auto& readings = readingStore->getReadings();
     for (unsigned char i = 0; i < readings.size(); i++) {
@@ -145,12 +144,11 @@ void persistReadingStore(std::shared_ptr<ReadingStore<N>> readingStore) {
 }
 
 #include "Arduino.h"
-template <size_t N>
-std::unique_ptr<ReadingStore<N>> setupReadingStore() {
-    auto readingStore = std::make_unique<ReadingStore<N>>();
+std::unique_ptr<ReadingStore> setupReadingStore(size_t readingsToKeep) {
+    auto readingStore = std::make_unique<ReadingStore>(readingsToKeep);
 
     preferences.begin(PREFERENCE_NS, true);
-    for (unsigned char i = 0; i < N; i++) {
+    for (unsigned char i = 0; i < readingsToKeep; i++) {
         alk_measure::PersistedAlkReading reading = readAlkReading(i);
         if (reading.alkReadingDKH != 0) {
             readingStore->addAlkReading(reading);

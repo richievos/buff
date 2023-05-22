@@ -49,8 +49,8 @@ std::shared_ptr<buff_time::TimeWrapper> timeClient = nullptr;
 const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
 const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
 
-std::unique_ptr<web_server::BuffWebServer<reading_store::READINGS_TO_KEEP>> webServer;
-std::shared_ptr<reading_store::ReadingStore<reading_store::READINGS_TO_KEEP>> readingStore;
+std::unique_ptr<web_server::BuffWebServer> webServer;
+std::shared_ptr<reading_store::ReadingStore> readingStore;
 
 const unsigned int ALK_STEP_INTERVAL_MS = 1000;
 
@@ -305,28 +305,6 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         doser->calibrator = std::move(calibr);
     };
 
-    // topicsToProcessor["config/stepSize"] = [&](const std::string& payload) {
-    //     auto doc = parseInput(payload);
-    //     auto doser = selectDoser(*buffDosersPtr, doc);
-
-    //     auto stepType = doc["stepType"].as<std::string>();
-
-    //     int newMicroStepType = FULL;
-    //     if (stepType == "full") {
-    //         newMicroStepType = FULL;
-    //     } else if (stepType == "quarter") {
-    //         newMicroStepType = QUARTER;
-    //     } else if (stepType == "eighth") {
-    //         newMicroStepType = EIGHTH;
-    //     } else if (stepType == "sixteenth") {
-    //         newMicroStepType = SIXTEENTH;
-    //     }
-
-    //     Serial << "Switching step type from=" << doser->config.microStepType << " to=" << newMicroStepType << "\n";
-    //     doser->config.microStepType = newMicroStepType;
-    //     doser->stepper->begin(doser->config.motorRPM, doser->config.microStepType);
-    // };
-
     topicsToProcessor[mqtt::phRead] = [](const std::string& payload) {
         auto doc = parseInput(payload);
 
@@ -364,8 +342,8 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
 
     std::shared_ptr<richiev::mqtt::TopicProcessorMap> handlers = std::move(buildHandlers(*buffDosers));
 
-    readingStore = std::move(reading_store::setupReadingStore<reading_store::READINGS_TO_KEEP>());
-    webServer = std::make_unique<web_server::BuffWebServer<reading_store::READINGS_TO_KEEP>>(timeClient);
+    readingStore = std::move(reading_store::setupReadingStore(reading_store::READINGS_TO_KEEP));
+    webServer = std::make_unique<web_server::BuffWebServer>(timeClient);
 
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);
