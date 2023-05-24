@@ -37,7 +37,6 @@ struct DoserConfig {
     int clockwiseDirectionMultiplier = 1;
 };
 
-
 enum MeasurementDoserType {
     FILL = 0,
     DRAIN = 10,
@@ -48,4 +47,5 @@ static std::map<std::string, MeasurementDoserType> const MEASUREMENT_DOSER_TYPE_
     {{"fill", MeasurementDoserType::FILL},
      {"drain", MeasurementDoserType::DRAIN},
      {"reagent", MeasurementDoserType::REAGENT}};
+
 }  // namespace buff

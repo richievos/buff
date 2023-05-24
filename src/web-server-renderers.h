@@ -16,7 +16,7 @@ enum TriggerVal {
     FAIL
 };
 
-std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeInSec) {
+static std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeInSec) {
     // millis to time
     const time_t rawtime = (time_t)timeInSec;
     struct tm *dt = gmtime(&rawtime);
@@ -26,18 +26,18 @@ std::string renderTime(char *temp, size_t bufferSize, const unsigned long timeIn
     return temp;
 }
 
-std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const std::string &mostRecentTitle, const std::set<std::string> &recentTitles) {
+static std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const std::string &mostRecentTitle, const std::set<std::string> &recentTitles) {
     std::string titleText;
     if (recentTitles.size() > 0) {
-      titleText += R"(<span class="intro">Recent:</span>)";
+        titleText += R"(<span class="intro">Recent:</span>)";
     }
     int i = 0;
     for (auto title : recentTitles) {
-      const char *title_template = R"(<li class="list-inline-item"><a href="#" data-title="%s" class="populate-title">%s</a></li>)";
-      snprintf(temp, bufferSize, title_template, title.c_str(), title.c_str());
-      titleText += temp;
-      i++;
-      if (i > 3) break;
+        const char *title_template = R"(<li class="list-inline-item"><a href="#" data-title="%s" class="populate-title">%s</a></li>)";
+        snprintf(temp, bufferSize, title_template, title.c_str(), title.c_str());
+        titleText += temp;
+        i++;
+        if (i > 3) break;
     }
 
     std::string formTemplate = R"(
@@ -65,7 +65,7 @@ std::string renderTriggerForm(char *temp, size_t bufferSize, const unsigned long
     return temp;
 }
 
-std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
+static std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings) {
     std::string measurementString = R"(<section class="row mt-3"><div class="col"><table class="table table-striped">)";
     const auto alkMeasureTemplate = R"(
       <tr class="measurement">
@@ -96,7 +96,7 @@ std::string renderMeasurementList(char *temp, size_t bufferSize, const std::vect
     return measurementString;
 }
 
-std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &reading) {
+static std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &reading) {
     const auto headerTemplate = R"(<header class="navbar">
     <div><a href="/" class="navbar-brand">Buff</a></div>
     <div class="navbar-text">pH: %.1f</div>
@@ -108,7 +108,7 @@ std::string renderHeader(char *temp, size_t bufferSize, const ph::PHReading &rea
     return temp;
 }
 
-std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const unsigned long uptimeMS) {
+static std::string renderFooter(char *temp, size_t bufferSize, const unsigned long renderTimeSec, const unsigned long uptimeMS) {
     const auto footerTemplate = R"(
         <footer class="row">
           <div class="col">
@@ -131,7 +131,7 @@ std::string renderFooter(char *temp, size_t bufferSize, const unsigned long rend
     return temp;
 }
 
-std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered) {
+static std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered) {
     std::string alertContent = "";
     if (triggered == TriggerVal::SUCCESS) {
         alertContent = R"(<section class="alert alert-success">Successfully triggered a measurement!</section>)";
@@ -147,7 +147,7 @@ std::string renderAlerts(char *temp, size_t bufferSize, const unsigned long curr
     return alertContent;
 }
 
-void renderRoot(std::string &out, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered, const unsigned long renderTimeSec, const unsigned long uptimeMS, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const std::set<std::string> &recentTitles, const ph::PHReading &phReading) {
+static void renderRoot(std::string &out, const unsigned long currentElapsedMeasurementTimeMS, const TriggerVal &triggered, const unsigned long renderTimeSec, const unsigned long uptimeMS, const std::vector<std::reference_wrapper<alk_measure::PersistedAlkReading>> &mostRecentReadings, const std::set<std::string> &recentTitles, const ph::PHReading &phReading) {
     const size_t bufferSize = 2048;
     char temp[bufferSize];
     memset(temp, 0, bufferSize);

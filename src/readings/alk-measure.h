@@ -3,10 +3,10 @@
 #include <Arduino.h>
 
 // Buff Libraries
-#include "readings/alk-measure-common.h"
 #include "doser/doser.h"
 #include "mqtt-common.h"
 #include "ph-controller.h"
+#include "readings/alk-measure-common.h"
 #include "readings/ph.h"
 #include "time-common.h"
 
@@ -90,9 +90,9 @@ static bool hitPHTarget(const float ph) {
 }
 
 static float round2Decimals(const float f) {
-    return roundf(f*100.0) / 100.0;
+    return roundf(f * 100.0) / 100.0;
 }
-static float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &alkMeasureConf) {
+static float calcAlkReading(const AlkReading &alkReading, const AlkMeasurementConfig &alkMeasureConf) {
     float dkh = (alkReading.reagentVolumeML / alkReading.tankWaterVolumeML * 280.0) * (alkMeasureConf.reagentStrengthMoles / 0.1);
     dkh *= alkMeasureConf.calibrationMultiplier;
 
@@ -207,7 +207,9 @@ class AlkMeasurer {
                 }
             } else if (prevResult.nextMeasurementStepAction == MeasurementStepAction::DOSE) {
                 // Note: per research on the topic (eg https://link.springer.com/chapter/10.1007/978-1-4615-2580-6_14)
-                // the stirrer should be stopped before attempting to measure the pH
+                // the stirrer should be stopped before attempting to measure the pH. However I think the change is
+                // small enough that it doesn't really matter. Especially given during calibration I tend to keep the
+                // fluid in motion anyway.
                 addReagentDose(*_buffDosers, r.alkMeasureConf.incrementalReagentDoseVolumeML, r.alkReading);
                 stirForABit(*_buffDosers, r.alkMeasureConf);
 

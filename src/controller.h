@@ -8,10 +8,10 @@
 #include <nvs_flash.h>
 
 // Buff Libraries
-#include "readings/alk-measure.h"
+#include "buff-displays/monitoring-display.h"
 #include "doser/doser.h"
 #include "inputs.h"
-#include "buff-displays/monitoring-display.h"
+#include "readings/alk-measure.h"
 
 #ifdef BOARD_MKS_DLC32
 #include "mks-bridge.h"
@@ -25,6 +25,11 @@
 
 namespace buff {
 namespace controller {
+
+const unsigned int AUTO_PH_SAMPLE_COUNT = 15;
+const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
+const unsigned int ALK_STEP_INTERVAL_MS = 1000;
+
 /*******************************
  * Handlers
  *******************************/
@@ -37,13 +42,8 @@ std::shared_ptr<doser::BuffDosers> buffDosersPtr = nullptr;
 std::shared_ptr<mqtt::Publisher> publisher = nullptr;
 std::shared_ptr<buff_time::TimeWrapper> timeClient = nullptr;
 
-const unsigned int AUTO_PH_SAMPLE_COUNT = 10;
-const unsigned int MANUAL_PH_SAMPLE_COUNT = 10;
-
 std::unique_ptr<web_server::BuffWebServer> webServer;
 std::shared_ptr<reading_store::ReadingStore> readingStore;
-
-const unsigned int ALK_STEP_INTERVAL_MS = 1000;
 
 std::unique_ptr<alk_measure::AlkMeasureLooper<AUTO_PH_SAMPLE_COUNT>> autoMeasureLooper = nullptr;
 std::unique_ptr<alk_measure::AlkMeasureLooper<MANUAL_PH_SAMPLE_COUNT>> manualMeasureLooper = nullptr;

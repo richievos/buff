@@ -58,10 +58,6 @@ class MQTTPublisher : public Publisher {
 
         updateDoc["asOf"] = asOfMS;
         updateDoc["title"] = title;
-        Serial.print("publishMeasureAlk ");
-        Serial.println(title.c_str());
-        Serial.println();
-        return;
 
         publishMessage(Topic(measureAlk), updateDoc);
     }

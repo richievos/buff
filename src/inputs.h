@@ -47,40 +47,9 @@ defineRoboTankSignalReaderFunc(roboTankPHSensorI2CAddress)
         .phReadFunc = nameForRoboTankSignalReaderFunc(roboTankPHSensorI2CAddress)};
 
 // calibrate the ph probe and enter in the settings here
-// apr 25 pre
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 7.120};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 5.138};
-// apr 25 post
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 7.095};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 5.05};
-
-// apr25 probe2, board2
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 7.32};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 5.34};
-
-// apr25 probe2, board3
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 6.67};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 4.6};
-
-// apr25 probe2, board4
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 6.84};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = };
-
-// const PHCalibrator::CalibrationPoint phLowPoint = { .actualPH = 4.0, .readPH = 5.244 };
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 5.239};
-
-// May3 (after left out to dry)
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 10.0, .readPH = 9.53};
-// const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 7.238};
-// const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 5.243};
-
-// May15 new
 // const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 10.0, .readPH = 9.53};
 const ph::PHCalibrator::CalibrationPoint phHighPoint = {.actualPH = 7.0, .readPH = 6.73};
 const ph::PHCalibrator::CalibrationPoint phLowPoint = {.actualPH = 4.0, .readPH = 4.7};
-
-// 8.8
-//  4old: 4.68
 
 ph::PHCalibrator phCalibrator(phLowPoint, phHighPoint);
 
@@ -93,45 +62,18 @@ const auto PIN_CONFIG = ESP32_CONFIG;
 const auto PIN_CONFIG = MKS_DLC32_CONFIG;
 #endif
 
-// KPHM
-// pre-may-3
-// const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.289, .motorRPM = 200, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// post-may-3
-// const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.286, .motorRPM = 200, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// new doser temp
-// const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.31, .motorRPM = 200, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0};
-// 3=4.055, 1=1.352
 const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.269, .motorRPM = 120,
                                      //
                                      .microStepType = SIXTEENTH,
                                      .fullStepsPerRotation = 200,
                                      .clockwiseDirectionMultiplier = -1};
 
-// GOSO
-// original piping
-// DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.175, .motorRPM = 60, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = 1};
-// const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.181, .motorRPM = 90, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.181, .motorRPM = 90, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.187, .motorRPM = 90, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.187, .motorRPM = 30, .microStepType = EIGHTH, .degreesPerStep = 2.0};
-// 1 = 1.7
-const DoserConfig reagentDoserConfig = {
-    .mlPerFullRotation = 0.175, .motorRPM = 60,
-    //
-    .microStepType = SIXTEENTH,
-    .fullStepsPerRotation = 200,
-    .clockwiseDirectionMultiplier = 1};
+const DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.175, .motorRPM = 60,
+                                        //
+                                        .microStepType = SIXTEENTH,
+                                        .fullStepsPerRotation = 200,
+                                        .clockwiseDirectionMultiplier = 1};
 
-// 1-3 piping
-// DoserConfig reagentDoserConfig = {.mlPerFullRotation = 0.0501, .motorRPM = 240, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = 1};
-// KPHM
-// 420 rpm was a bit noisy
-// DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.29, .motorRPM = 500, .microStepType = EIGHTH, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 400, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 400, .microStepType = SIXTEENTH, .clockwiseDirectionMultiplier = -1};
-// const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 250, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0};
-
-// const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.295, .motorRPM = 60, .microStepType = FULL, .degreesPerStep = 2.0};
 const DoserConfig drainDoserConfig = {.mlPerFullRotation = 0.3, .motorRPM = 180,
                                       //
                                       .microStepType = SIXTEENTH,
@@ -156,9 +98,6 @@ const std::map<MeasurementDoserType, std::shared_ptr<A4988>> doserSteppers = {
     {MeasurementDoserType::FILL, std::make_shared<A4988>(fillDoserConfig.fullStepsPerRotation, PIN_CONFIG.FILL_WATER_DIR_PIN, PIN_CONFIG.FILL_WATER_STEP_PIN)},
     {MeasurementDoserType::REAGENT, std::make_shared<A4988>(reagentDoserConfig.fullStepsPerRotation, PIN_CONFIG.REAGENT_DIR_PIN, PIN_CONFIG.REAGENT_STEP_PIN)},
     {MeasurementDoserType::DRAIN, std::make_shared<A4988>(drainDoserConfig.fullStepsPerRotation, PIN_CONFIG.DRAIN_WATER_DIR_PIN, PIN_CONFIG.DRAIN_WATER_STEP_PIN)},
-    // {MeasurementDoserType::FILL, std::make_shared<A4988>(200, PIN_CONFIG.FILL_WATER_DIR_PIN, PIN_CONFIG.FILL_WATER_STEP_PIN)},
-    // {MeasurementDoserType::REAGENT, std::make_shared<A4988>(200, PIN_CONFIG.REAGENT_DIR_PIN, PIN_CONFIG.REAGENT_STEP_PIN)},
-    // {MeasurementDoserType::DRAIN, std::make_shared<A4988>(200, PIN_CONFIG.DRAIN_WATER_DIR_PIN, PIN_CONFIG.DRAIN_WATER_STEP_PIN)},
 };
 
 std::map<MeasurementDoserType, std::shared_ptr<doser::Doser>> doserInstances = {

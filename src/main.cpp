@@ -38,7 +38,7 @@ auto publisher = std::make_shared<mqtt::MQTTPublisher>(mqttClient);
 std::shared_ptr<NTPClient> ntpClient;
 std::shared_ptr<buff_time::TimeWrapper> timeClient;
 
-std::shared_ptr<doser::BuffDosers> buffDosers = nullptr;
+std::shared_ptr<doser::BuffDosers> buffDosers;
 
 /**************************
  * Setup & Loop
