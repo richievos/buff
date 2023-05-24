@@ -30,7 +30,7 @@ static bool displaySetupFully = false;
 
 const uint16_t FILL_COLOR = static_cast<uint16_t>(0xCCCCC);
 
-void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
+void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore, std::shared_ptr<mqtt::Publisher> publisher) {
     pinMode(LCD_EN, OUTPUT);
     digitalWrite(LCD_EN, LOW);
 

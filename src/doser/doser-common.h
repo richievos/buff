@@ -99,7 +99,7 @@ class BuffDosers {
     }
 };
 
-MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
+static MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
     auto it = MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER.find(doserType);
     if (it != MEASUREMENT_DOSER_TYPE_NAME_TO_MEASUREMENT_DOSER.end()) {
         return it->second;
@@ -110,7 +110,7 @@ MeasurementDoserType lookupMeasurementDoserType(const std::string doserType) {
 }
 
 template <class STEPPER_TYPE>
-void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType &doserType, std::shared_ptr<Doser> doser, std::shared_ptr<STEPPER_TYPE> stepper) {
+static void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType &doserType, std::shared_ptr<Doser> doser, std::shared_ptr<STEPPER_TYPE> stepper) {
     doser->calibrator = std::move(std::make_unique<Calibrator>(doser->config.mlPerFullRotation));
     doser->setup();
 
@@ -119,7 +119,7 @@ void setupDoser(BuffDosers& buffDosers, const MeasurementDoserType &doserType, s
 }
 
 template <class STEPPER_TYPE>
-std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserDisablePin,
+static std::unique_ptr<buff::doser::BuffDosers> setupDosers(const short doserDisablePin,
                                                              const std::map<MeasurementDoserType, std::shared_ptr<Doser>> &doserInstances,
                                                              const std::map<MeasurementDoserType, std::shared_ptr<STEPPER_TYPE>> &steppers) {
     auto dosers = std::make_unique<buff::doser::BuffDosers>(doserDisablePin);

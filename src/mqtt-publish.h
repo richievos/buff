@@ -7,8 +7,8 @@
 #include <TinyMqtt.h>
 
 // Buff Libraries
-#include "readings/alk-measure.h"
 #include "mqtt-common.h"
+#include "readings/alk-measure.h"
 #include "readings/ph-common.h"
 
 namespace buff {
@@ -26,7 +26,7 @@ class MQTTPublisher : public Publisher {
     }
 
     void publishPH(const ph::PHReading& phReading) {
-        DynamicJsonDocument updateDoc(1024);
+        DynamicJsonDocument updateDoc(256);
 
         updateDoc["asOf"] = phReading.asOfMS;
         updateDoc["asOfAdjustedSec"] = phReading.asOfAdjustedSec;
@@ -39,7 +39,7 @@ class MQTTPublisher : public Publisher {
     }
 
     void publishAlkReading(const alk_measure::AlkReading& alkReading) {
-        DynamicJsonDocument updateDoc(1024);
+        DynamicJsonDocument updateDoc(512);
 
         updateDoc["asOf"] = alkReading.asOfMS;
         updateDoc["asOfAdjustedSec"] = alkReading.asOfAdjustedSec;
@@ -51,6 +51,19 @@ class MQTTPublisher : public Publisher {
         updateDoc["calibratedPH_mavg"] = alkReading.phReading.calibratedPH_mavg;
 
         publishMessage(Topic(alkRead), updateDoc);
+    }
+
+    void publishMeasureAlk(const std::string& title, const unsigned long asOfMS) {
+        DynamicJsonDocument updateDoc(128);
+
+        updateDoc["asOf"] = asOfMS;
+        updateDoc["title"] = title;
+        Serial.print("publishMeasureAlk ");
+        Serial.println(title.c_str());
+        Serial.println();
+        return;
+
+        publishMessage(Topic(measureAlk), updateDoc);
     }
 
    private:

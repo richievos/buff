@@ -52,7 +52,7 @@ const ArduinoPinConfig ESP32_CONFIG = {
 #include "mks-skinny/Pins.h"
 
 // from Grbl_Esp32/src/Machines/i2s_out_xyz_mks_dlc32.h
-struct mks {
+static struct mks {
     short MKS_X_DISABLE_PIN = I2SO(0);
     short MKS_X_DIRECTION_PIN = I2SO(2);
     short MKS_X_STEP_PIN = I2SO(1);

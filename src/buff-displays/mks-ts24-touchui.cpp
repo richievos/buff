@@ -14,6 +14,7 @@
 #include <memory>
 
 // My Libs
+#include "mqtt-common.h"
 #include "readings/alk-measure-common.h"
 #include "readings/reading-store.h"
 
@@ -40,6 +41,16 @@ static bool displaySetupFully = false;
 
 static lv_disp_draw_buf_t drawBuf;
 static lv_color_t buf[SCREEN_WIDTH * 10];
+
+lv_obj_t* timeLabel;
+lv_obj_t* phLabel;
+
+lv_obj_t* triggerRoller;
+lv_obj_t* readingsList;
+
+lv_obj_t* debugRawPHLabel;
+
+std::shared_ptr<mqtt::Publisher> publisher;
 
 /* Display flushing */
 void flushCB(lv_disp_drv_t* disp, const lv_area_t* area, lv_color_t* color_p) {
@@ -71,11 +82,10 @@ void touchReadCB(lv_indev_drv_t* indev_driver, lv_indev_data_t* data) {
         data->point.x = touchX;
         data->point.y = touchY;
 
-        Serial.print("Data x ");
-        Serial.println(touchX);
-
-        Serial.print("Data y ");
-        Serial.println(touchY);
+        // Serial.print("Data x ");
+        // Serial.println(touchX);
+        // Serial.print("Data y ");
+        // Serial.println(touchY);
     }
 }
 
@@ -85,12 +95,13 @@ void event_handler(lv_event_t* e) {
 
     if (code == LV_EVENT_CLICKED) {
         Serial.println("Clicked");
+        char buf[128];
+        lv_roller_get_selected_str(triggerRoller, buf, sizeof(buf));
+        std::string title(buf);
+
+        publisher->publishMeasureAlk(title, millis());
     } else if (code == LV_EVENT_VALUE_CHANGED) {
         Serial.println("Toggled");
-
-        // char buf[32];
-        // lv_roller_get_selected_str(obj, buf, sizeof(buf));
-        // LV_LOG_USER("Selected month: %s\n", buf);
     }
 }
 
@@ -152,14 +163,6 @@ void enableDisplayHardware() {
     digitalWrite(LCD_EN, LOW);
 }
 
-lv_obj_t* timeLabel;
-lv_obj_t* phLabel;
-
-lv_obj_t* triggerRoller;
-lv_obj_t* readingsList;
-
-lv_obj_t* debugRawPHLabel;
-
 void createMainPage() {
     lv_obj_t* mainPage = lv_obj_create(lv_scr_act());
     lv_obj_set_flex_flow(mainPage, LV_FLEX_FLOW_COLUMN);
@@ -208,7 +211,7 @@ void createMainPage() {
     lv_roller_set_visible_row_count(triggerRoller, 3);
     lv_obj_center(triggerRoller);
     lv_obj_set_size(triggerRoller, LV_PCT(65), 70);
-    lv_obj_add_event_cb(triggerRoller, event_handler, LV_EVENT_ALL, NULL);
+    // lv_obj_add_event_cb(triggerRoller, event_handler, LV_EVENT_ALL, NULL);
 
     // trigger button
     lv_obj_t* triggerBtn = lv_btn_create(triggerRow);
@@ -290,7 +293,9 @@ void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     refreshReadingList(alkReadings);
 }
 
-void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
+void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore, std::shared_ptr<mqtt::Publisher> pub) {
+    publisher = pub;
+
     enableDisplayHardware();
     tftSetup();
     lvSetup();

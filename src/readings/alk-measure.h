@@ -41,7 +41,7 @@ static const std::map<MeasurementStepAction, std::string> MEASUREMENT_STEP_ACTIO
      {DOSE, "DOSE"},
      {STEP_DONE, "STEP_DONE"}};
 
-void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
+static void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
     std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
     // just blow some liquid out to cause some bubbles
@@ -51,7 +51,7 @@ void stirForABit(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkM
 // Pushes a bit of fluid out of the fill dosers, to make sure when we begin
 // using them for measurement that we don't miss some initial drops. This
 // helps counteract the effects of any back-siphoning.
-void primeDosers(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
+static void primeDosers(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
     std::shared_ptr<doser::Doser> waterFillDoser = buffDosers->selectDoser(MeasurementDoserType::FILL);
     std::shared_ptr<doser::Doser> reagentDoser = buffDosers->selectDoser(MeasurementDoserType::REAGENT);
 
@@ -61,27 +61,27 @@ void primeDosers(std::shared_ptr<doser::BuffDosers> buffDosers, const AlkMeasure
     waterFillDoser->doseML(alkMeasureConf.primeTankWaterFillVolumeML / 2.0);
 }
 
-void drainMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
+static void drainMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf) {
     std::shared_ptr<doser::Doser> drainDoser = buffDosers.selectDoser(MeasurementDoserType::DRAIN);
 
     drainDoser->doseML(alkMeasureConf.measurementTankWaterVolumeML + alkMeasureConf.extraPurgeVolumeML);
 }
 
-void fillMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, AlkReading &alkReading) {
+static void fillMeasurementVessel(doser::BuffDosers &buffDosers, const AlkMeasurementConfig &alkMeasureConf, AlkReading &alkReading) {
     std::shared_ptr<doser::Doser> waterFillDoser = buffDosers.selectDoser(MeasurementDoserType::FILL);
 
     waterFillDoser->doseML(alkMeasureConf.measurementTankWaterVolumeML);
     alkReading.tankWaterVolumeML += alkMeasureConf.measurementTankWaterVolumeML;
 }
 
-void addReagentDose(doser::BuffDosers &buffDosers, const float amountML, AlkReading &alkReading) {
+static void addReagentDose(doser::BuffDosers &buffDosers, const float amountML, AlkReading &alkReading) {
     std::shared_ptr<doser::Doser> reagentDoser = buffDosers.selectDoser(MeasurementDoserType::REAGENT);
 
     reagentDoser->doseML(amountML);
     alkReading.reagentVolumeML += amountML;
 }
 
-bool hitPHTarget(const float ph) {
+static bool hitPHTarget(const float ph) {
     const float phMeasurementEpsilon = 0.05;
     const float targetPH = 4.5;
     const float practicalTargetPH = targetPH + phMeasurementEpsilon;
@@ -89,10 +89,10 @@ bool hitPHTarget(const float ph) {
     return ph < practicalTargetPH;
 }
 
-float round2Decimals(const float f) {
+static float round2Decimals(const float f) {
     return roundf(f*100.0) / 100.0;
 }
-float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &alkMeasureConf) {
+static float calcAlkReading(const AlkReading& alkReading, const AlkMeasurementConfig &alkMeasureConf) {
     float dkh = (alkReading.reagentVolumeML / alkReading.tankWaterVolumeML * 280.0) * (alkMeasureConf.reagentStrengthMoles / 0.1);
     dkh *= alkMeasureConf.calibrationMultiplier;
 

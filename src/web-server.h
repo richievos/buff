@@ -14,11 +14,6 @@
 namespace buff {
 namespace web_server {
 
-struct TriggerRequest {
-    std::string title;
-    unsigned long asOf;
-};
-
 class BuffWebServer {
    private:
     std::shared_ptr<reading_store::ReadingStore> _readingStore = nullptr;
@@ -27,7 +22,7 @@ class BuffWebServer {
 
     unsigned long _currentElapsedMeasurementTimeMS = 0;
 
-    std::unique_ptr<TriggerRequest> _pendingTrigger;
+    std::unique_ptr<alk_measure::TriggerRequest> _pendingTrigger;
 
    public:
     BuffWebServer(std::shared_ptr<buff_time::TimeWrapper> timeClient, int port=80) : _server(port), _timeClient(timeClient) {}
@@ -56,7 +51,7 @@ class BuffWebServer {
         TriggerVal triggered = TriggerVal::FAIL;
 
         if (asOf > 0) {
-            auto trigger = std::make_unique<TriggerRequest>();
+            auto trigger = std::make_unique<alk_measure::TriggerRequest>();
             trigger->title = _server.arg("title").c_str();
             richiev::strings::trim(trigger->title);
             trigger->asOf = asOf;
@@ -106,7 +101,7 @@ class BuffWebServer {
         _server.handleClient();
     }
 
-    std::unique_ptr<TriggerRequest> retrievePendingFeedRequest() {
+    std::unique_ptr<alk_measure::TriggerRequest> retrievePendingFeedRequest() {
         if (_pendingTrigger) {
             auto feedReq = std::move(_pendingTrigger);
             _pendingTrigger = nullptr;

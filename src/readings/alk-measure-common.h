@@ -26,6 +26,11 @@ struct PersistedAlkReading {
     std::string title;
 };
 
+struct TriggerRequest {
+    std::string title;
+    unsigned long asOf;
+};
+
 struct AlkMeasurementConfig {
     float primeTankWaterFillVolumeML = 1.0;
     float primeReagentReverseVolumeML = -2.6;

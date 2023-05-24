@@ -234,7 +234,7 @@ std::unique_ptr<richiev::mqtt::TopicProcessorMap> buildHandlers(doser::BuffDoser
         doser->debugRotateDegrees(degreesRotation);
     };
 
-    topicsToProcessor["execute/measure_alk"] = [&](const std::string& payload) {
+    topicsToProcessor[mqtt::measureAlk] = [&](const std::string& payload) {
         Serial.println("Executing an alk measurement");
         if (alkMeasurer == nullptr) return;        // TODO: raise
         if (autoMeasureLooper != nullptr) return;  // TODO: should this work this way? Should I reset?
@@ -342,7 +342,7 @@ void setupController(std::shared_ptr<MqttBroker> mqttBroker, std::shared_ptr<Mqt
     richiev::mqtt::setupMQTT(mqttBroker, mqttClient, handlers);
     webServer->setupWebServer(readingStore);
 
-    monitoring_display::setupDisplay(readingStore);
+    monitoring_display::setupDisplay(readingStore, publisher);
 
 #ifdef BOARD_MKS_DLC32
     setup_mks();
