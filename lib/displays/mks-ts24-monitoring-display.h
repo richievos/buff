@@ -73,7 +73,7 @@ void setupDisplay() {
     // #endif
 }
 
-void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOf) {
+void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOfMS, const ulong asOfAdjustedSec) {
     if (!displaySetupFully) {
         return;
     }
@@ -90,7 +90,7 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     target.setTextFont(2);
 
     target.print(F("asOf: "));
-    target.println(asOf);
+    target.println(asOfMS);
 
     target.fillScreen(FILL_COLOR);
     target.print(F("calib ph: "));

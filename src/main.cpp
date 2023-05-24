@@ -64,6 +64,7 @@ void setup() {
 void loop() {
     auto phReadingPtr = phReader->readNewPHSignalIfTimeAndUpdate<STANDARD_PH_MAVG_LENGTH>(phReadingStats);
     if (phReadingPtr != nullptr) {
+        phReadingPtr->asOfAdjustedSec = timeClient->getAdjustedTimeSeconds();
         publisher->publishPH(*phReadingPtr);
     }
 

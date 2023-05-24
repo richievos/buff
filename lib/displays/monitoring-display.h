@@ -27,7 +27,7 @@ void setupDisplay() {
     }
 }
 
-void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOf) {
+void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOfMS, const unsigned long asOfAdjustedSec) {
     if (!displaySetupFully) {
         return;
     }
@@ -49,7 +49,7 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     display.println(calibratedPH_mvag, 3);
 
     display.print(F("asOf="));
-    display.println(asOf);
+    display.println(asOfMS);
 
     display.display();
 }

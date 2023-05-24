@@ -71,6 +71,7 @@ StaticJsonDocument<200> parseInput(const std::string payload) {
 ph::PHReading parsePH(const StaticJsonDocument<200> doc) {
     ph::PHReading reading = {
         .asOfMS = doc["asOf"].as<ulong>(),
+        .asOfAdjustedSec = doc["asOfAdjustedSec"].as<ulong>(),
 
         .rawPH = doc["rawPH"].as<float>(),
         .rawPH_mavg = doc["rawPH_mavg"].as<float>(),
@@ -82,7 +83,7 @@ ph::PHReading parsePH(const StaticJsonDocument<200> doc) {
 }
 
 void debugOutputPH(const ph::PHReading& reading) {
-    monitoring_display::displayPH(reading.rawPH, reading.calibratedPH, reading.rawPH_mavg, reading.calibratedPH_mavg, reading.asOfMS);
+    monitoring_display::displayPH(reading.rawPH, reading.calibratedPH, reading.rawPH_mavg, reading.calibratedPH_mavg, reading.asOfMS, reading.asOfAdjustedSec);
 }
 
 void debugOutputAlk(const StaticJsonDocument<200> doc, const std::string& payload) {

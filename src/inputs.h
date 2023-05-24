@@ -101,7 +101,7 @@ const auto PIN_CONFIG = MKS_DLC32_CONFIG;
 // new doser temp
 // const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.31, .motorRPM = 200, .microStepType = THIRTY_SECOND, .degreesPerStep = 2.0};
 // 3=4.055, 1=1.352
-const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.272, .motorRPM = 120,
+const DoserConfig fillDoserConfig = {.mlPerFullRotation = 0.269, .motorRPM = 120,
                                      //
                                      .microStepType = SIXTEENTH,
                                      .fullStepsPerRotation = 200,

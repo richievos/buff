@@ -5,6 +5,7 @@ namespace ph {
 
 struct PHReading {
     unsigned long asOfMS;
+    unsigned long asOfAdjustedSec;
 
     float rawPH;
     float rawPH_mavg;

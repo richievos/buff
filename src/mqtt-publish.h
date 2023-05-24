@@ -29,6 +29,7 @@ class MQTTPublisher : public Publisher {
         DynamicJsonDocument updateDoc(1024);
 
         updateDoc["asOf"] = phReading.asOfMS;
+        updateDoc["asOfAdjustedSec"] = phReading.asOfAdjustedSec;
         updateDoc["rawPH"] = phReading.rawPH;
         updateDoc["rawPH_mavg"] = phReading.rawPH_mavg;
         updateDoc["calibratedPH"] = phReading.calibratedPH;

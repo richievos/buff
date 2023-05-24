@@ -146,108 +146,61 @@ void lvSetup() {
     lv_indev_drv_register(&indev_drv);
 }
 
-void demoMixed() {
-    /*Create a container with ROW flex direction*/
-    lv_obj_t* cont_row = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(cont_row, SCREEN_WIDTH, 75);
-    lv_obj_align(cont_row, LV_ALIGN_TOP_MID, 0, 5);
-    lv_obj_set_flex_flow(cont_row, LV_FLEX_FLOW_ROW);
-
-    /*Create a container with COLUMN flex direction*/
-    lv_obj_t* cont_col = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(cont_col, 200, 150);
-    lv_obj_align_to(cont_col, cont_row, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
-    lv_obj_set_flex_flow(cont_col, LV_FLEX_FLOW_COLUMN);
-
-    uint32_t i;
-    for (i = 0; i < 10; i++) {
-        lv_obj_t* obj;
-        lv_obj_t* label;
-
-        /*Add items to the row*/
-        obj = lv_btn_create(cont_row);
-        lv_obj_add_event_cb(obj, event_handler, LV_EVENT_ALL, NULL);
-        lv_obj_set_size(obj, 100, LV_PCT(100));
-
-        label = lv_label_create(obj);
-        lv_label_set_text_fmt(label, "Item: %" LV_PRIu32 "", i);
-        lv_obj_center(label);
-
-        /*Add items to the column*/
-        obj = lv_btn_create(cont_col);
-        lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
-
-        label = lv_label_create(obj);
-        lv_label_set_text_fmt(label, "Item: %" LV_PRIu32, i);
-        lv_obj_center(label);
-    }
-}
-
 void enableDisplayHardware() {
     pinMode(LCD_EN, OUTPUT);
     digitalWrite(LCD_EN, LOW);
 }
 
-void demoLabels() {
-    /* Create simple label */
-    lv_obj_t* label = lv_label_create(lv_scr_act());
-    auto labelText = "TESTING1";
-    lv_label_set_text(label, labelText);
-    // lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_pos(label, 0, 0);
-
-    lv_obj_t* label2 = lv_label_create(lv_scr_act());
-    auto labelText2 = "T2";
-    lv_label_set_text(label2, labelText2);
-    lv_obj_set_pos(label2, 200, 50);
-
-    lv_obj_t* label3 = lv_label_create(lv_scr_act());
-    auto labelText3 = "T3";
-    lv_label_set_text(label3, labelText3);
-    lv_obj_set_pos(label3, 200, 50);
-
-    lv_obj_t* label5 = lv_label_create(lv_scr_act());
-    auto labelText5 = "T5";
-    lv_label_set_text(label5, labelText5);
-    lv_obj_set_pos(label5, 230, 320);
-
-    lv_obj_t* label4 = lv_label_create(lv_scr_act());
-    auto labelText4 = "TESTING4";
-    lv_label_set_text(label4, labelText4);
-    lv_obj_set_pos(label4, 200, 200);
-}
-
-void demoButtons() {
-    lv_obj_t* label;
-
-    lv_obj_t* btn1 = lv_btn_create(lv_scr_act());
-    lv_obj_add_event_cb(btn1, event_handler, LV_EVENT_ALL, NULL);
-    lv_obj_align(btn1, LV_ALIGN_CENTER, 0, -40);
-
-    label = lv_label_create(btn1);
-    lv_label_set_text(label, "Button");
-    lv_obj_center(label);
-
-    lv_obj_t* btn2 = lv_btn_create(lv_scr_act());
-    lv_obj_add_event_cb(btn2, event_handler, LV_EVENT_ALL, NULL);
-    lv_obj_align(btn2, LV_ALIGN_CENTER, 0, 40);
-    lv_obj_add_flag(btn2, LV_OBJ_FLAG_CHECKABLE);
-    lv_obj_set_height(btn2, LV_SIZE_CONTENT);
-
-    label = lv_label_create(btn2);
-    lv_label_set_text(label, "Toggle");
-    lv_obj_center(label);
-}
+lv_obj_t* timeLabel;
+lv_obj_t* phLabel;
 
 lv_obj_t* triggerRoller;
 lv_obj_t* readingsList;
 
+lv_obj_t* debugRawPHLabel;
+
 void createMainPage() {
-    /*Create a container with ROW flex direction*/
-    lv_obj_t* triggerRow = lv_list_create(lv_scr_act());
-    lv_obj_set_size(triggerRow, SCREEN_WIDTH, 100);
-    lv_obj_align(triggerRow, LV_ALIGN_TOP_MID, 0, 5);
+    lv_obj_t* mainPage = lv_obj_create(lv_scr_act());
+    lv_obj_set_flex_flow(mainPage, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_size(mainPage, SCREEN_WIDTH, SCREEN_HEIGHT);
+    lv_obj_set_style_pad_column(mainPage, 5, 0);
+    lv_obj_set_style_pad_row(mainPage, 0, 0);
+    lv_obj_set_align(mainPage, LV_ALIGN_TOP_LEFT);
+    lv_obj_clear_flag(mainPage, LV_OBJ_FLAG_SCROLLABLE);
+
+    /***************
+     * Title bar
+     ***************/
+    static lv_style_t headerStyle;
+    lv_style_init(&headerStyle);
+    lv_style_set_bg_color(&headerStyle, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_text_color(&headerStyle, lv_color_black());
+
+    lv_obj_t* headerBar = lv_obj_create(mainPage);
+    lv_obj_set_size(headerBar, SCREEN_WIDTH, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_row(headerBar, 0, 0);
+    lv_obj_add_style(headerBar, &headerStyle, 0);
+
+    // time
+    timeLabel = lv_label_create(headerBar);
+    lv_obj_set_align(timeLabel, LV_ALIGN_BOTTOM_LEFT);
+    lv_label_set_text(timeLabel, "00:00:00");
+    lv_obj_set_size(timeLabel, 120, LV_SIZE_CONTENT);
+
+    // ph
+    phLabel = lv_label_create(headerBar);
+    lv_obj_set_align(phLabel, LV_ALIGN_BOTTOM_RIGHT);
+    lv_label_set_text(phLabel, "pH: 00.0");
+    lv_obj_set_size(phLabel, 60, LV_SIZE_CONTENT);
+
+    /***************
+     * Re-triggering row
+     ***************/
+    lv_obj_t* triggerRow = lv_obj_create(mainPage);
+    lv_obj_set_size(triggerRow, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(triggerRow, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(triggerRow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(triggerRow, 5, 0);
 
     // roller
     triggerRoller = lv_roller_create(triggerRow);
@@ -258,19 +211,43 @@ void createMainPage() {
 
     // trigger button
     lv_obj_t* triggerBtn = lv_btn_create(triggerRow);
-    lv_obj_set_size(triggerBtn, LV_PCT(30), LV_SIZE_CONTENT);
+    lv_obj_set_size(triggerBtn, LV_PCT(35), 40);
     lv_obj_add_event_cb(triggerBtn, event_handler, LV_EVENT_ALL, NULL);
-    lv_obj_align_to(triggerBtn, triggerRoller, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 
     lv_obj_t* triggerLabel = lv_label_create(triggerBtn);
     lv_label_set_text(triggerLabel, "Trigger");
-    lv_obj_center(triggerLabel);
+    lv_obj_set_align(triggerLabel, LV_ALIGN_CENTER);
+    lv_obj_set_style_text_align(triggerLabel, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_size(triggerLabel, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
 
-    /*Create a container with COLUMN flex direction*/
-    readingsList = lv_list_create(lv_scr_act());
-    lv_obj_set_size(readingsList, 200, 150);
+    /***************
+     * List of readings
+     ***************/
+    readingsList = lv_obj_create(mainPage);
+    lv_obj_set_size(readingsList, LV_PCT(100), 175);
     lv_obj_align_to(readingsList, triggerRow, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
     lv_obj_set_flex_flow(readingsList, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(readingsList, 5, 0);
+
+    /***************
+     * Debug bar
+     ***************/
+    lv_obj_t* debugBar = lv_obj_create(mainPage);
+    lv_obj_set_size(debugBar, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_align(debugBar, LV_ALIGN_TOP_MID, 0, 5);
+    lv_obj_set_flex_flow(debugBar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(debugBar, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(debugBar, 5, 0);
+
+    static lv_style_t smallLabelStyle;
+    lv_style_init(&smallLabelStyle);
+    lv_style_set_text_font(&smallLabelStyle, &lv_font_montserrat_10);
+
+    // raw ph
+    debugRawPHLabel = lv_label_create(debugBar);
+    lv_label_set_text(debugRawPHLabel, "raw pH: 00.0");
+    lv_obj_set_size(debugRawPHLabel, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_add_style(debugRawPHLabel, &smallLabelStyle, 0);
 }
 
 void refreshTriggerButtons(const std::set<std::string>& titles) {
@@ -296,22 +273,17 @@ void refreshReadingList(const std::vector<std::reference_wrapper<alk_measure::Pe
     for (int i = 0; i < std::min(alkReadings.size(), static_cast<size_t>(10)); i++) {
         auto readingRef = alkReadings[i];
         auto reading = readingRef.get();
-        /*Add items to the column*/
-        lv_obj_t* obj = lv_btn_create(readingsList);
-        lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_t* btn = lv_btn_create(readingsList);
 
-        lv_obj_t* label = lv_label_create(obj);
+        lv_obj_t* label = lv_label_create(btn);
         snprintf(printBuff, bufferSize, "%s: %.1f dkh", reading.title.c_str(), reading.alkReadingDKH);
         lv_label_set_text(label, printBuff);
-        lv_obj_center(label);
+        lv_obj_set_size(btn, LV_PCT(100), LV_SIZE_CONTENT);
     }
 }
 
 void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     auto alkReadings = readingStore->getReadingsSortedByAsOf();
-    // renderRoot(bodyText, _currentElapsedMeasurementTimeMS, TriggerVal::NA,
-    // _timeClient->getAdjustedTimeSeconds(), millis(),
-    // readings, _readingStore->getRecentTitles(readings),
     const ph::PHReading& reading = readingStore->getMostRecentPHReading();
 
     refreshTriggerButtons(readingStore->getRecentTitles(alkReadings));
@@ -330,14 +302,42 @@ void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     displaySetupFully = true;
 }
 
-void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOf) {
+// TODO: move this to a shared helper
+void renderTime(char* temp, size_t bufferSize, const unsigned long timeInSec) {
+    // millis to time
+    const time_t rawtime = (time_t)timeInSec;
+    struct tm* dt = gmtime(&rawtime);
+
+    // TODO: HACK convert to PDT
+    dt->tm_hour += (24 - 7) % 24;
+
+    // format
+    strftime(temp, bufferSize, "%H:%M:%S", dt);
+}
+
+void displayPH(const float rawPH, const float calibratedPH, const float rawPH_mvag, const float calibratedPH_mvag, const ulong asOfMS, const unsigned long asOfAdjustedSec) {
     if (!displaySetupFully) {
         return;
     }
+
+    size_t bufSize = 150;
+    char buf[bufSize];
+
+    // ph
+    sprintf(buf, "ph: %2.1f", calibratedPH_mvag);
+    lv_label_set_text(phLabel, buf);
+
+    // debug ph 🕑
+    sprintf(buf, "ph: %2.1f (%2.1f), rawPH: %2.1f (%2.1f)", calibratedPH, calibratedPH_mvag, rawPH, rawPH_mvag);
+    lv_label_set_text(debugRawPHLabel, buf);
+
+    // time
+    renderTime(buf, bufSize, asOfAdjustedSec);
+    lv_label_set_text(timeLabel, buf);
 }
 
 void loopDisplay() {
-    lv_timer_handler(); /* let the GUI do its work */
+    lv_timer_handler();
 }
 
 }  // namespace monitoring_display
