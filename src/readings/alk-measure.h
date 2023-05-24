@@ -3,11 +3,11 @@
 #include <Arduino.h>
 
 // Buff Libraries
-#include "alk-measure-common.h"
-#include "doser.h"
+#include "readings/alk-measure-common.h"
+#include "doser/doser.h"
 #include "mqtt-common.h"
 #include "ph-controller.h"
-#include "ph.h"
+#include "readings/ph.h"
 #include "time-common.h"
 
 namespace buff {

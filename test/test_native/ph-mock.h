@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "ph-controller.h"
-#include "ph.h"
+#include "readings/ph.h"
 
 namespace buff {
 const ph::PHCalibrator::CalibrationPoint NoOpHighPoint = {.actualPH = 7.0, .readPH = 7.0};

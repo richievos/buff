@@ -4,7 +4,7 @@
 
 #include "ph-controller.h"
 #include "ph-mock.h"
-#include "ph.h"
+#include "readings/ph.h"
 #include "numeric.h"
 
 namespace test_numeric {

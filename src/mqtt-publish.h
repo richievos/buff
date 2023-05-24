@@ -7,9 +7,9 @@
 #include <TinyMqtt.h>
 
 // Buff Libraries
-#include "alk-measure.h"
+#include "readings/alk-measure.h"
 #include "mqtt-common.h"
-#include "ph-common.h"
+#include "readings/ph-common.h"
 
 namespace buff {
 namespace mqtt {

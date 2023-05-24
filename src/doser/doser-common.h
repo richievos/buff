@@ -8,7 +8,7 @@
 #include <string>
 
 // Buff Libraries
-#include "doser-config.h"
+#include "doser/doser-config.h"
 
 namespace buff {
 namespace doser {

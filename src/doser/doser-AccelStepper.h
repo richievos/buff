@@ -5,19 +5,19 @@
 #include <string>
 
 // Arduino Libraries
-#include <A4988.h>
+#include <AccelStepper.h>
 
 // Buff Libraries
-#include "doser-common.h"
+#include "doser/doser-common.h"
 
 namespace buff {
 namespace doser {
 
-class BasicStepperDoser : public Doser {
+class AccelStepperDoser : public Doser {
    public:
-    BasicStepperDoser(DoserConfig doserConfig, std::shared_ptr<A4988> s) : Doser(doserConfig), stepper(s) {}
+    AccelStepperDoser(DoserConfig doserConfig, std::shared_ptr<AccelStepper> s) : Doser(doserConfig), stepper(s) {}
 
-    std::shared_ptr<A4988> stepper;
+    std::shared_ptr<AccelStepper> stepper;
 
     virtual void doseML(const float outputML, Calibrator* aCalibrator = nullptr) {
         if (aCalibrator == nullptr) aCalibrator = calibrator.get();
@@ -36,29 +36,39 @@ class BasicStepperDoser : public Doser {
         Serial.println();
 
         stepper->move(steps);
+        stepper->runToPosition();
     }
 
     virtual void setup() {
-        stepper->begin(config.motorRPM, config.microStepType);
+        const auto rps = config.motorRPM / 60.0;
+        const long stepsPerRevolution = partialRotationToSteps(1.0);
+        const auto maxSpeed = rps * stepsPerRevolution;
+        Serial.print("[AS] Setting max speed, steps=");
+        Serial.println(maxSpeed);
+        stepper->setMaxSpeed(maxSpeed);
+        stepper->setAcceleration(maxSpeed);
+        stepper->setMinPulseWidth(80);
     }
 
     virtual void debugRotateDegrees(const int degreesRotation) {
         const long steps = degreesToFullSteps(degreesRotation);
-        Serial.print("[BS] Outputting via degreesRotation=");
+        Serial.print("[AS] Outputting via degreesRotation=");
         Serial.print(degreesRotation);
         Serial.print(" via steps=");
         Serial.print(steps);
         Serial.println();
 
         stepper->move(steps);
+        stepper->runToPosition();
     }
 
     virtual void debugRotateSteps(const long steps) {
-        Serial.print("[BS] Outputting via steps=");
+        Serial.print("[AS] Outputting via steps=");
         Serial.print(steps);
         Serial.println();
 
         stepper->move(steps);
+        stepper->runToPosition();
     }
 };
 

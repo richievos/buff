@@ -5,8 +5,8 @@
 
 #include <string>
 
-#include "alk-measure-common.h"
-#include "reading-store.h"
+#include "readings/alk-measure-common.h"
+#include "readings/reading-store.h"
 #include "string-manip.h"
 #include "time-common.h"
 #include "web-server-renderers.h"

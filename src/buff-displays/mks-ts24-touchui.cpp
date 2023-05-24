@@ -1,7 +1,8 @@
-#pragma once
-
+#ifdef DISPLAY_MKS_TS24_TOUCH
 #include <Arduino.h>
 #include <SPI.h>
+
+#include "buff-displays/monitoring-display.h"
 
 // TODO: move this out
 #define LCD_EN GPIO_NUM_5
@@ -13,8 +14,8 @@
 #include <memory>
 
 // My Libs
-#include "alk-measure-common.h"
-#include "reading-store.h"
+#include "readings/alk-measure-common.h"
+#include "readings/reading-store.h"
 
 namespace buff {
 
@@ -250,7 +251,7 @@ void createMainPage() {
     lv_obj_add_style(debugRawPHLabel, &smallLabelStyle, 0);
 }
 
-void refreshTriggerButtons(const std::set<std::string>& titles) {
+void refreshTriggerList(const std::set<std::string>& titles) {
     std::string concatTitle = "";
     for (auto title : titles) {
         if (concatTitle.size() > 0) {
@@ -284,9 +285,8 @@ void refreshReadingList(const std::vector<std::reference_wrapper<alk_measure::Pe
 
 void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     auto alkReadings = readingStore->getReadingsSortedByAsOf();
-    const ph::PHReading& reading = readingStore->getMostRecentPHReading();
 
-    refreshTriggerButtons(readingStore->getRecentTitles(alkReadings));
+    refreshTriggerList(readingStore->getRecentTitles(alkReadings));
     refreshReadingList(alkReadings);
 }
 
@@ -298,7 +298,6 @@ void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     createMainPage();
     updateDisplay(readingStore);
 
-    // Done
     displaySetupFully = true;
 }
 
@@ -342,3 +341,5 @@ void loopDisplay() {
 
 }  // namespace monitoring_display
 }  // namespace buff
+
+#endif

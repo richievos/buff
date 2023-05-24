@@ -6,7 +6,7 @@
 #include "RVMovingAvg.h"
 
 // Buff Libraries
-#include "ph.h"
+#include "readings/ph.h"
 
 /*******************************
  * Useful functions

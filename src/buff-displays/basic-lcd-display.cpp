@@ -1,9 +1,9 @@
-#pragma once
+#ifdef DISPLAY_BASIC_LCD
+#include "buff-displays/monitoring-display.h"
 
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
+#include <Wire.h>
 
 namespace buff {
 namespace monitoring_display {
@@ -18,7 +18,7 @@ const uint8_t DISPLAY_I2C_ADDRESS = 0x3c;
 
 static bool displaySetupFully = false;
 
-void setupDisplay() {
+void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
         Serial.println(F("SSD1306 allocation failed"));
@@ -54,7 +54,11 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     display.display();
 }
 
-void loopDisplay() { }
+void loopDisplay() {}
+
+void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {}
 
 }  // namespace monitoring_display
 }  // namespace buff
+
+#endif

@@ -8,27 +8,18 @@
 #include <nvs_flash.h>
 
 // Buff Libraries
-#include "alk-measure.h"
-#include "doser.h"
+#include "readings/alk-measure.h"
+#include "doser/doser.h"
 #include "inputs.h"
+#include "buff-displays/monitoring-display.h"
 
 #ifdef BOARD_MKS_DLC32
-
-#ifdef TOUCH_DISPLAY
 #include "mks-bridge.h"
-#include "mks-ts24-touchui.h"
-#else
-#include "mks-bridge.h"
-#include "mks-ts24-monitoring-display.h"
-#endif
-
-#else
-#include "monitoring-display.h"
 #endif
 
 #include "mqtt-common.h"
 #include "mqtt.h"
-#include "reading-store.h"
+#include "readings/reading-store.h"
 #include "time-common.h"
 #include "web-server.h"
 

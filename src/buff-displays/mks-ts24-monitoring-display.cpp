@@ -1,7 +1,8 @@
-#pragma once
-
+#ifdef DISPLAY_MKS_MONITORING
 #include <Arduino.h>
 #include <SPI.h>
+
+#include "buff-displays/monitoring-display.h"
 
 // TODO: move this out
 #define LCD_SCK GPIO_NUM_18
@@ -29,7 +30,7 @@ static bool displaySetupFully = false;
 
 const uint16_t FILL_COLOR = static_cast<uint16_t>(0xCCCCC);
 
-void setupDisplay() {
+void setupDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {
     pinMode(LCD_EN, OUTPUT);
     digitalWrite(LCD_EN, LOW);
 
@@ -53,7 +54,7 @@ void setupDisplay() {
     // tft.setRotation(3);  // right-to-left, (0,0) = D
     // tft.setRotation(4);  // right-to-left, (0,0) = D
     // tft.setRotation(5);  // left-to-left, (0,0) = B
-    tft.setRotation(6);     // left-to-right, (0,0) = A
+    tft.setRotation(6);  // left-to-right, (0,0) = A
     // tft.setRotation(7);  // left-to-right, (0,0) = C
 
     tft.fillScreen(FILL_COLOR);
@@ -103,7 +104,6 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
     target.println();
     target.println();
 
-
     target.print(F("raw pH: "));
     target.println(pH, 3);
     target.print(F("mavg(raw pH): "));
@@ -114,7 +114,10 @@ void displayPH(const float pH, const float convertedPH, const float rawPH_mvag, 
 #endif
 }
 
-void loopDisplay() { }
+void loopDisplay() {}
+void updateDisplay(std::shared_ptr<reading_store::ReadingStore> readingStore) {}
 
 }  // namespace monitoring_display
 }  // namespace buff
+
+#endif

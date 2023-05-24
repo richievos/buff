@@ -4,10 +4,10 @@
 #include <string>
 
 // Buff Libraries
-#include "doser-config.h"
+#include "doser/doser-config.h"
 #include "inputs-board-config.h"
 #include "ph-robotank-sensor.h"
-#include "ph.h"
+#include "readings/ph.h"
 
 // Other inputs
 // const std::string wifiSSID;

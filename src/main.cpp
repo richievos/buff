@@ -11,9 +11,9 @@
 #include "mks-skinny/I2SOut.h"
 
 // Buff Libraries
-#include "alk-measure.h"
+#include "readings/alk-measure.h"
 #include "controller.h"
-#include "doser.h"
+#include "doser/doser.h"
 #include "inputs.h"
 #include "mqtt-publish.h"
 #include "mqtt.h"

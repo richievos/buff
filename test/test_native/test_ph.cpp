@@ -4,7 +4,7 @@
 
 #include "ph-controller.h"
 #include "ph-mock.h"
-#include "ph.h"
+#include "readings/ph.h"
 
 namespace test_ph {
 using namespace buff;

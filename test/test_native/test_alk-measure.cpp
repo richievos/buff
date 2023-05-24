@@ -4,8 +4,8 @@
 #include <iterator>
 #include <vector>
 
-#include "alk-measure.h"
-#include "doser.h"
+#include "readings/alk-measure.h"
+#include "doser/doser.h"
 #include "mqtt-common.h"
 #include "ph-mock.h"
 #include "time-common.h"
@@ -23,6 +23,9 @@ class MockDoser : public doser::Doser {
     virtual void doseML(const float outputML, doser::Calibrator *aCalibrator = nullptr) { }
 
     virtual void setup() {}
+
+    virtual void debugRotateDegrees(const int deg) {}
+    virtual void debugRotateSteps(const long steps)  {}
 };
 
 #define mockptrize(mockPtr) &mockPtr->get(), [](...) {}

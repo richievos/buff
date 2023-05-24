@@ -5,7 +5,7 @@
 #include <string>
 
 #include "Arduino.h"
-#include "alk-measure-common.h"
+#include "readings/alk-measure-common.h"
 
 namespace buff {
 namespace web_server {

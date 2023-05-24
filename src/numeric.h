@@ -9,7 +9,7 @@ struct PHStorageFloat {
     unsigned char decimalPart = 0;
 };
 
-PHStorageFloat smallFloatToStorableParts(const float smallFloat) {
+static PHStorageFloat smallFloatToStorableParts(const float smallFloat) {
     PHStorageFloat storage;
 
     float converted = smallFloat * 10;
@@ -21,7 +21,7 @@ PHStorageFloat smallFloatToStorableParts(const float smallFloat) {
     return storage;
 }
 
-float storablePartsToFloat(const PHStorageFloat &storage) {
+static float storablePartsToFloat(const PHStorageFloat &storage) {
     float result = 0.0f;
     result += storage.integerPart;
     result += (storage.decimalPart / 10.0);
@@ -29,7 +29,7 @@ float storablePartsToFloat(const PHStorageFloat &storage) {
     return result;
 }
 
-unsigned char smallFloatToByte(const float smallFloat) {
+static unsigned char smallFloatToByte(const float smallFloat) {
     PHStorageFloat parts = smallFloatToStorableParts(smallFloat);
     unsigned char result = 0;
 
@@ -38,7 +38,7 @@ unsigned char smallFloatToByte(const float smallFloat) {
     return result;
 }
 
-float byteToSmallFloat(const unsigned char encodedSmallFloat) {
+static float byteToSmallFloat(const unsigned char encodedSmallFloat) {
     PHStorageFloat parts;
     parts.integerPart = ((encodedSmallFloat & 0xF0) >> 4);
     parts.decimalPart = (encodedSmallFloat & 0xF);
