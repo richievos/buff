@@ -80,14 +80,8 @@ void touchReadCB(lv_indev_drv_t* indev_driver, lv_indev_data_t* data) {
     } else {
         data->state = LV_INDEV_STATE_PR;
 
-        /*Set the coordinates*/
         data->point.x = touchX;
         data->point.y = touchY;
-
-        // Serial.print("Data x ");
-        // Serial.println(touchX);
-        // Serial.print("Data y ");
-        // Serial.println(touchY);
     }
 }
 
@@ -96,8 +90,7 @@ void event_handler(lv_event_t* e) {
     lv_obj_t* obj = lv_event_get_target(e);
 
     if (code == LV_EVENT_CLICKED) {
-        Serial.println("Clicked");
-        char buf[128];
+        char buf[reading_store::MAX_TITLE_LEN];
         lv_roller_get_selected_str(triggerRoller, buf, sizeof(buf));
         std::string title(buf);
 
@@ -110,7 +103,21 @@ void event_handler(lv_event_t* e) {
 void tftSetup() {
     tft.begin();
 #ifdef MKS_DISPLAY_TS35
-    tft.setRotation(1);
+    /*
+        Visualization of the TS35
+          Makerbase
+        A            B
+         ------------
+        |            |
+        |            |
+        |            |
+        |            |
+        |            |
+         ------------
+        C            D
+    */
+    tft.setRotation(0); // left-to-right, (0,0) = A
+    // tft.setRotation(1); // top-to-bottom, (0,0) = A
 #else  // MKS_DISPLAY_TS24
     /*
         Visualization of the TS24
@@ -135,7 +142,6 @@ void tftSetup() {
     // tft.setRotation(7);  // left-to-right, (0,0) = C
 #endif
 
-    // tft.init();
     tft.initDMA();
 
     uint16_t calData[5] = {275, 3620, 264, 3532, 1};
@@ -235,9 +241,11 @@ void createMainPage() {
      * List of readings
      ***************/
     readingsList = lv_obj_create(mainPage);
-    lv_obj_set_size(readingsList, LV_PCT(100), 175);
+    lv_obj_set_width(readingsList, LV_PCT(100));
+    // lv_obj_set_height(readingsList, 175);
     lv_obj_align_to(readingsList, triggerRow, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
     lv_obj_set_flex_flow(readingsList, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_grow(readingsList, 1);
     lv_obj_set_style_pad_row(readingsList, 5, 0);
 
     /***************
