@@ -22,17 +22,19 @@ namespace buff {
 
 namespace monitoring_display {
 
-// Portrait Mode dimensions
 static const uint16_t TS24_WIDTH = 240;
 static const uint16_t TS24_HEIGHT = 320;
 
-#define LANDSCAPE_SCREEN
-#ifdef LANDSCAPE_SCREEN
+static const uint16_t TS35_WIDTH = 320;
+static const uint16_t TS35_HEIGHT = 480;
+
+// Portrait Mode dimensions
+#ifdef MKS_DISPLAY_TS35
+static const uint16_t SCREEN_WIDTH = TS35_WIDTH;
+static const uint16_t SCREEN_HEIGHT = TS35_HEIGHT;
+#else  // MKS_DISPLAY_TS24
 static const uint16_t SCREEN_WIDTH = TS24_WIDTH;
 static const uint16_t SCREEN_HEIGHT = TS24_HEIGHT;
-#else  // Portrait
-static const uint16_t SCREEN_WIDTH = TFT_HEIGHT;
-static const uint16_t SCREEN_HEIGHT = TFT_WIDTH;
 #endif
 
 auto static tft = TFT_eSPI(SCREEN_WIDTH, TS24_HEIGHT);
@@ -107,8 +109,9 @@ void event_handler(lv_event_t* e) {
 
 void tftSetup() {
     tft.begin();
-    // tft.init();
-    tft.initDMA();
+#ifdef MKS_DISPLAY_TS35
+    tft.setRotation(1);
+#else  // MKS_DISPLAY_TS24
     /*
         Visualization of the TS24
           Makerbase
@@ -130,6 +133,10 @@ void tftSetup() {
     // tft.setRotation(5);  // left-to-left, (0,0) = B
     tft.setRotation(6);  // left-to-right, (0,0) = A
     // tft.setRotation(7);  // left-to-right, (0,0) = C
+#endif
+
+    // tft.init();
+    tft.initDMA();
 
     uint16_t calData[5] = {275, 3620, 264, 3532, 1};
     tft.setTouch(calData);
